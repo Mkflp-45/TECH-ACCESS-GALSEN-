@@ -1,0 +1,45 @@
+<svg viewBox="0 0 300 450" xmlns="http://www.w3.org/2000/svg">
+  <!-- Brain/Circuit Design -->
+  <circle cx="150" cy="120" r="90" fill="none" stroke="#0D47A1" stroke-width="3"/>
+  
+  <!-- Concentric circles -->
+  <circle cx="150" cy="120" r="75" fill="none" stroke="#0D47A1" stroke-width="2"/>
+  <circle cx="150" cy="120" r="60" fill="none" stroke="#0D47A1" stroke-width="1.5"/>
+  
+  <!-- Circuit paths -->
+  <path d="M 150 45 L 150 30" stroke="#0D47A1" stroke-width="2" fill="none"/>
+  <path d="M 220 120 L 245 120" stroke="#0D47A1" stroke-width="2" fill="none"/>
+  <path d="M 150 195 L 150 210" stroke="#0D47A1" stroke-width="2" fill="none"/>
+  <path d="M 80 120 L 55 120" stroke="#0D47A1" stroke-width="2" fill="none"/>
+  
+  <!-- Top circuit lines -->
+  <path d="M 130 70 L 110 50" stroke="#0D47A1" stroke-width="1.5" fill="none"/>
+  <path d="M 170 70 L 190 50" stroke="#0D47A1" stroke-width="1.5" fill="none"/>
+  
+  <!-- Bottom circuit lines -->
+  <path d="M 130 170 L 110 190" stroke="#0D47A1" stroke-width="1.5" fill="none"/>
+  <path d="M 170 170 L 190 190" stroke="#0D47A1" stroke-width="1.5" fill="none"/>
+  
+  <!-- Central G shape (Tech) -->
+  <g transform="translate(150, 120)">
+    <path d="M -20 -15 Q -25 -15 -25 0 L -25 15 Q -25 20 -20 20 L 0 20 L 0 10 L -15 10 L -15 0 L 5 0" 
+          stroke="#0D47A1" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Dots/Connectors -->
+  <circle cx="150" cy="30" r="4" fill="#0D47A1"/>
+  <circle cx="245" cy="120" r="4" fill="#0D47A1"/>
+  <circle cx="150" cy="210" r="4" fill="#0D47A1"/>
+  <circle cx="55" cy="120" r="4" fill="#0D47A1"/>
+  <circle cx="110" cy="50" r="3" fill="#0D47A1"/>
+  <circle cx="190" cy="50" r="3" fill="#0D47A1"/>
+  <circle cx="110" cy="190" r="3" fill="#0D47A1"/>
+  <circle cx="190" cy="190" r="3" fill="#0D47A1"/>
+  
+  <!-- Text: TECH ACCESS -->
+  <text x="150" y="270" font-family="Arial, sans-serif" font-size="48" font-weight="bold" text-anchor="middle" fill="#0D2A6B">TECH</text>
+  <text x="150" y="320" font-family="Arial, sans-serif" font-size="48" font-weight="bold" text-anchor="middle" fill="#0D2A6B">ACCESS</text>
+  
+  <!-- Tagline -->
+  <text x="150" y="350" font-family="Arial, sans-serif" font-size="14" text-anchor="middle" fill="#0D47A1" letter-spacing="1">LA TECH ACCESSIBLE A TOUS</text>
+</svg>
