@@ -926,6 +926,129 @@ color: var(--mid);
 }
 .cart-empty-icon { font-size: 3rem; margin-bottom: 12px; }
 
+/* CUSTOMER MODAL */
+.customer-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 3000;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.customer-modal-overlay.show { display: flex; }
+
+.customer-modal {
+  background: var(--gray);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 40px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+
+.customer-modal-header {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 1.6rem;
+  letter-spacing: 2px;
+  margin-bottom: 24px;
+  color: var(--accent2);
+}
+
+.customer-form-group {
+  margin-bottom: 20px;
+}
+
+.customer-form-group label {
+  display: block;
+  font-family: "Space Mono", monospace;
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--mid);
+  margin-bottom: 8px;
+}
+
+.customer-form-group input {
+  width: 100%;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--white);
+  padding: 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  border-radius: 4px;
+  transition: border-color 0.2s;
+}
+
+.customer-form-group input:focus {
+  outline: none;
+  border-color: var(--accent2);
+}
+
+.customer-form-group input::placeholder { color: var(--mid); }
+
+.customer-modal-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 30px;
+}
+
+.btn-cancel, .btn-pay {
+  padding: 12px 24px;
+  font-family: "Space Mono", monospace;
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 4px;
+  border: none;
+  transition: all 0.2s;
+}
+
+.btn-cancel {
+  background: transparent;
+  color: var(--white);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.btn-cancel:hover { border-color: var(--white); }
+
+.btn-pay {
+  background: var(--accent);
+  color: var(--white);
+}
+
+.btn-pay:hover { background: #e03d10; }
+
+.order-total-display {
+  background: rgba(30, 136, 229, 0.1);
+  border: 1px solid rgba(30, 136, 229, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.order-total-label {
+  font-family: "Space Mono", monospace;
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--mid);
+  margin-bottom: 8px;
+}
+
+.order-total-amount {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 2rem;
+  color: var(--accent2);
+}
+
 /* ANIMATIONS */
 @keyframes fadeUp {
 from { opacity: 0; transform: translateY(30px); }
@@ -1042,6 +1165,9 @@ white-space: nowrap;
   .cart-footer { padding: 18px 20px; }
   .product-bottom { flex-direction: column; align-items: flex-start; gap: 14px; }
   .product-price { font-size: 1rem; }
+  .customer-modal { padding: 32px 24px; }
+  .customer-modal-header { font-size: 1.4rem; }
+  .order-total-amount { font-size: 1.6rem; }
 }
 
 @media (max-width: 540px) {
@@ -1338,6 +1464,45 @@ const db = firebase.firestore();
   </div>
 </div>
 
+<!-- CUSTOMER INFO MODAL -->
+<div class="customer-modal-overlay" id="customerModalOverlay">
+  <div class="customer-modal">
+    <div class="customer-modal-header">INFORMATIONS CLIENT</div>
+    
+    <div class="order-total-display">
+      <div class="order-total-label">Montant à payer</div>
+      <div class="order-total-amount" id="modalOrderTotal">0,00€</div>
+    </div>
+
+    <form id="customerForm" onsubmit="submitCustomerForm(event)">
+      <div class="customer-form-group">
+        <label>Nom</label>
+        <input type="text" id="customerName" placeholder="Ex: Diop" required>
+      </div>
+
+      <div class="customer-form-group">
+        <label>Prénom</label>
+        <input type="text" id="customerFirstName" placeholder="Ex: Amadou" required>
+      </div>
+
+      <div class="customer-form-group">
+        <label>Numéro WhatsApp</label>
+        <input type="tel" id="customerWhatsApp" placeholder="Ex: +221 77 000 0000" required>
+      </div>
+
+      <div class="customer-form-group">
+        <label>Quartier / Localité</label>
+        <input type="text" id="customerQuartier" placeholder="Ex: Plateau, Sacré-Cœur" required>
+      </div>
+
+      <div class="customer-modal-footer">
+        <button type="button" class="btn-cancel" onclick="closeCustomerModal()">Annuler</button>
+        <button type="submit" class="btn-pay">Payer avec Wave →</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
   // Detect if mobile
   const isMobile = () => window.innerWidth <= 768;
@@ -1567,7 +1732,7 @@ const db = firebase.firestore();
 
   function processWavePayment() {
     const total = getCartTotal();
-    document.getElementById('cartMessage').textContent = 'Redirection vers Wave…';
+    document.getElementById('cartMessage').textContent = '';
 
     const redirectUrl = getWavePaymentUrl(total);
     if (!redirectUrl) {
@@ -1576,8 +1741,58 @@ const db = firebase.firestore();
       return;
     }
 
+    // Afficher le modal pour les informations client
+    openCustomerModal(total);
+  }
+
+  function openCustomerModal(total) {
+    // Afficher le montant dans le modal
+    const totalFormatted = (total).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    document.getElementById('modalOrderTotal').textContent = totalFormatted + '€';
+    
+    // Afficher le modal
+    document.getElementById('customerModalOverlay').classList.add('show');
+  }
+
+  function closeCustomerModal() {
+    document.getElementById('customerModalOverlay').classList.remove('show');
+    // Réinitialiser le formulaire
+    document.getElementById('customerForm').reset();
+  }
+
+  function submitCustomerForm(event) {
+    event.preventDefault();
+
+    const name = document.getElementById('customerName').value.trim();
+    const firstName = document.getElementById('customerFirstName').value.trim();
+    const whatsapp = document.getElementById('customerWhatsApp').value.trim();
+    const quartier = document.getElementById('customerQuartier').value.trim();
+    const total = getCartTotal();
+
+    if (!name || !firstName || !whatsapp || !quartier) {
+      showToast('❌ Veuillez remplir tous les champs');
+      return;
+    }
+
+    // Stocker les informations client dans localStorage
+    const customerInfo = {
+      name: name,
+      firstName: firstName,
+      whatsapp: whatsapp,
+      quartier: quartier,
+      total: total,
+      cart: cart,
+      timestamp: new Date().toISOString()
+    };
+    
+    localStorage.setItem('lastCustomerOrder', JSON.stringify(customerInfo));
+
+    // Fermer le modal
+    closeCustomerModal();
+
+    // Rediriger vers Wave
     showToast('✅ Redirection vers Wave');
-    window.location.href = redirectUrl;
+    window.location.href = wavePaymentLink;
   }
 
   let toastTimer;
