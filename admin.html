@@ -898,6 +898,7 @@ const db = firebase.firestore();
   
   async function loadProductsFromFirestore() {
     try {
+      console.log('📥 Chargement des produits depuis Firestore...');
       const querySnapshot = await db.collection('products').get();
       currentData.products = [];
       querySnapshot.forEach(doc => {
@@ -910,7 +911,11 @@ const db = firebase.firestore();
       updateDashboard();
       renderProducts();
     } catch (error) {
-      console.warn('⚠️ Firestore non disponible, utilisation des données locales:', error);
+      console.warn('⚠️ Firestore erreur chargement:', error);
+      console.log('💾 Utilisation des données locales');
+      if (error.code === 'permission-denied') {
+        console.log('🔐 Les règles Firestore ne permettent pas la lecture. Consulte FIRESTORE_RULES.md');
+      }
     }
   }
   
@@ -922,6 +927,7 @@ const db = firebase.firestore();
   
   async function syncWithFirestore() {
     try {
+      console.log('📤 Synchronisation vers Firestore...');
       // Sync products to Firestore
       for (const product of currentData.products) {
         if (product.id && typeof product.id === 'string') {
@@ -935,9 +941,13 @@ const db = firebase.firestore();
           }, { merge: true });
         }
       }
-      console.log('✅ Données synchronisées avec Firestore');
+      console.log('✅ Données synchronisées avec Firestore (', currentData.products.length, ' produits)');
     } catch (error) {
-      console.error('⚠️ Erreur sync Firestore:', error);
+      console.error('❌ Erreur sync Firestore:', error);
+      console.log('⚠️ Message:', error.message);
+      if (error.code === 'permission-denied') {
+        console.log('🔐 Les règles Firestore ne permettent pas l\'écriture. Consulte FIRESTORE_RULES.md');
+      }
     }
   }
   
