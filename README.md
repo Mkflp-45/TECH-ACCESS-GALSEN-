@@ -1,35 +1,19 @@
-# VOLT Wave Backend
+# TECH ACCESS — Site statique
 
-Backend Node.js pour le paiement Wave de la page `volt.html`.
+Ce projet est un site statique prêt pour un déploiement sur Vercel sans backend.
 
-## Installation
+## Déploiement
 
-1. Copier `.env.example` en `.env`
-2. Ajouter `WAVE_API_KEY` dans le fichier `.env`
-3. Installer les dépendances :
+- Sur Vercel, il suffit de déployer le dossier `TECH-ACCESS-GALSEN` en tant que site statique.
+- Il n’y a pas besoin de Node.js ni d’API serveur pour le paiement Wave.
 
-```bash
-npm install
-```
+## Paiement Wave
 
-## Lancer le serveur
+- Le paiement Wave est géré avec un lien de redirection simple.
+- Ouvre `index.html` et remplace la constante `wavePaymentLink` par ton lien de paiement Wave direct.
+- Lors du clic sur « Commander », l’utilisateur est redirigé vers Wave.
 
-```bash
-npm start
-```
+## Note
 
-Le backend tourne ensuite sur `http://localhost:3000`.
-
-## API
-
-- `POST /api/wave`
-  - `items`: tableau des produits
-  - `total`: montant total (nombre)
-  - `currency`: devise, par exemple `EUR`
-
-Le frontend de `volt.html` est configuré pour envoyer la requête à `http://localhost:3000/api/wave`.
-
-## Notes
-
-- Remplace `WAVE_API_URL` dans `.env` si ton endpoint Wave est différent.
-- Ce backend est un exemple de base. Pour une intégration réelle, adapte le format du payload selon la documentation Wave.
+- Si tu veux conserver une option carte bancaire, cela nécessite une intégration serveur supplémentaire.
+- Pour une publication sur Vercel, tu peux déployer tel quel : `index.html`, `admin.html`, `logo.svg` et les ressources associées.

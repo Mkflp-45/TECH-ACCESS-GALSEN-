@@ -1383,11 +1383,16 @@ white-space: nowrap;
   // Cart state
   let cart = [];
   let cartOpen = false;
+  const wavePaymentLink = 'https://pat.wave.com/m/M_sn_Bg4an4f38jXi/c/sn/';
 
   function toggleCart() {
     cartOpen = !cartOpen;
     document.getElementById('cartOverlay').classList.toggle('open', cartOpen);
     document.getElementById('cartPanel').classList.toggle('open', cartOpen);
+  }
+
+  function getWavePaymentUrl(total) {
+    return wavePaymentLink;
   }
 
   function addToCart(productId) {
@@ -1461,30 +1466,19 @@ white-space: nowrap;
     }
   }
 
-  async function processWavePayment() {
+  function processWavePayment() {
     const total = getCartTotal();
     document.getElementById('cartMessage').textContent = 'Redirection vers Wave…';
 
-    try {
-      const response = await fetch('http://localhost:3000/api/wave', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: cart, total: total, currency: 'XOF' })
-      });
-
-      if (!response.ok) {
-        throw new Error('Erreur de paiement');
-      }
-
-      const result = await response.json();
-      document.getElementById('cartMessage').textContent = 'Redirection vers Wave…';
-      showToast('✅ Redirection vers Wave');
-      window.location.href = result.url;
-    } catch (error) {
-      console.error(error);
-      document.getElementById('cartMessage').textContent = 'Impossible de préparer le paiement Wave.';
-      showToast('⚠️ Erreur lors du paiement Wave');
+    const redirectUrl = getWavePaymentUrl(total);
+    if (!redirectUrl) {
+      document.getElementById('cartMessage').textContent = 'Lien Wave non configuré.';
+      showToast('⚠️ Merci de définir wavePaymentLink dans index.html');
+      return;
     }
+
+    showToast('✅ Redirection vers Wave');
+    window.location.href = redirectUrl;
   }
 
   let toastTimer;
