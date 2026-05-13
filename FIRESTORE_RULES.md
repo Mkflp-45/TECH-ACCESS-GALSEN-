@@ -1,10 +1,10 @@
-# Configuration des Règles Firestore
+# Configuration des règles Firestore
 
-## 🔐 Règles de sécurité Firestore
+## 🔐 Règles Firestore pour production
 
-Les données ne se synchronisent pas entre appareils parce que les **règles de sécurité** par défaut (mode test) sont restrictives.
+Tu utilises Firebase en production, donc il faut une configuration qui autorise la synchronisation tout en préparant un passage à plus de sécurité.
 
-### **Étape 1 : Accéder aux Règles Firestore**
+### **Étape 1 : Accéder aux règles Firestore**
 
 1. Va sur [console.firebase.google.com](https://console.firebase.google.com)
 2. Sélectionne ton projet `TECH-ACCESS-GALSEN`
@@ -13,11 +13,12 @@ Les données ne se synchronisent pas entre appareils parce que les **règles de 
 
 ### **Étape 2 : Remplacer les règles par celles-ci**
 
+Pour que l’application puisse lire et écrire les produits sans authentification :
+
 ```
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read/write for 'products' collection (public)
     match /products/{document=**} {
       allow read: if true;
       allow write: if true;
@@ -32,31 +33,31 @@ Clique sur **"Publier"** (bouton bleu en bas à droite)
 
 ---
 
-## ✅ Après publication des règles
+## ✅ Ce que cela permet
 
-- ✅ Tous les utilisateurs peuvent **lire** les produits
-- ✅ Tous les utilisateurs peuvent **modifier** les produits
-- ✅ **Synchronisation en temps réel** activée !
+- ✅ Lecture des produits depuis tous les appareils
+- ✅ Écriture des produits depuis ton interface admin
+- ✅ Synchronisation partagée entre appareils
 
 ---
 
-## ⚠️ IMPORTANT : Sécurité en production
+## ⚠️ Important pour la production
 
-Ces règles sont **publiques** pour le développement. Pour la **production**, utilise :
+Ces règles sont **très ouvertes**. Si tu veux sécuriser le projet plus tard :
+
+- active l’authentification Firebase
+- n’autorise l’écriture que pour un compte admin
+- conserve `allow read: if true;` si tu veux un catalogue public
+
+Exemple de règles plus sûres lorsque tu ajoutes l’authentification :
 
 ```
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Products are public (read-only)
     match /products/{document=**} {
       allow read: if true;
-      allow write: if false;  // Modification seulement en admin
-    }
-    
-    // Admin can write to products
-    match /products/{document=**} {
-      allow write: if request.auth.uid == 'YOUR_ADMIN_UID';
+      allow write: if request.auth != null && request.auth.token.admin == true;
     }
   }
 }
@@ -64,28 +65,10 @@ service cloud.firestore {
 
 ---
 
-## 🧪 Test de synchronisation
+## 🧪 Vérifier la synchronisation
 
-1. **Ouvre** `index.html` sur **Appareil 1**
-2. **Ouvre** `index.html` sur **Appareil 2** (ou navigateur différent)
-3. **Ouvre** `admin.html` → ajoute/modifie un produit
-4. **Regarde** → les changements apparaissent instantanément sur les deux appareils ! 🚀
+1. Ouvre `admin.html` et modifie un produit.
+2. Ouvre `index.html` sur un autre appareil ou un autre navigateur.
+3. Actualise : les données doivent être identiques.
 
----
-
-## 🐛 Déboguer
-
-Si ça ne fonctionne pas :
-
-1. **Ouvre la console du navigateur** (`F12`)
-2. Cherche les **erreurs Firebase** (permission denied, etc.)
-3. **Vérifie** que les produits sont bien dans Firestore Console
-4. **Vérifie** que les règles sont publiées (pas en brouillon)
-
----
-
-## 📝 Notes
-
-- Les règles prennent ~5-10 secondes à se publier
-- La synchronisation en temps réel est **automatique** une fois les règles correctes
-- Tu peux tester sur plusieurs onglets du navigateur simultanément
+Si ça ne marche pas, vérifie la console du navigateur pour des erreurs Firebase.

@@ -1,0 +1,13 @@
+[build]
+  publish = "."
+  command = ""
+
+[[redirects]]
+  from = "/admin"
+  to = "/admin.html"
+  status = 200
+
+[[redirects]]
+  from = "/migrate"
+  to = "/migrate.html"
+  status = 200
