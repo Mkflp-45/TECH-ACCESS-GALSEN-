@@ -19,7 +19,14 @@ Pour que l’application puisse lire et écrire les produits sans authentificati
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Autoriser les produits
     match /products/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+    
+    // Autoriser la configuration (NOUVEAU)
+    match /settings/{document=**} {
       allow read: if true;
       allow write: if true;
     }
