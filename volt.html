@@ -56,6 +56,35 @@ z-index: 9998;
 transition: transform 0.35s ease;
 }
 
+/* MOBILE MENU */
+.mobile-menu-toggle {
+display: none;
+background: none;
+border: none;
+color: var(--white);
+font-size: 1.5rem;
+cursor: pointer;
+padding: 8px;
+z-index: 102;
+}
+.mobile-menu-toggle.active span:nth-child(1) {
+transform: rotate(45deg) translate(8px, 8px);
+}
+.mobile-menu-toggle.active span:nth-child(2) {
+opacity: 0;
+}
+.mobile-menu-toggle.active span:nth-child(3) {
+transform: rotate(-45deg) translate(7px, -6px);
+}
+.mobile-menu-toggle span {
+display: block;
+width: 25px;
+height: 2px;
+background: var(--white);
+margin: 5px 0;
+transition: 0.3s;
+}
+
 /* NOISE OVERLAY */
 body::before {
 content: "";
@@ -86,8 +115,13 @@ font-size: 2rem;
 letter-spacing: 4px;
 color: var(--white);
 text-decoration: none;
+display: flex;
+align-items: center;
+gap: 8px;
+z-index: 102;
 }
 .logo span { color: var(--accent); }
+.logo img { height: 40px; width: auto; }
 
 .nav-links {
 display: flex; gap: 36px;
@@ -937,65 +971,116 @@ white-space: nowrap;
 .toast-dot { width: 8px; height: 8px; background: #4ade80; border-radius: 50%; flex-shrink: 0; }
 
   /* RESPONSIVE */
-  @media (max-width: 1200px) {
-    nav { padding: 18px 28px; }
-    .hero { padding: 100px 28px 50px; }
-    .ticker .ticker-item { padding: 0 24px; font-size: 1rem; }
-    .promo-banner { margin: 0 28px; padding: 50px; grid-template-columns: 1fr; text-align: center; }
-    .promo-banner::before { right: 100px; }
-    .promo-discount { font-size: 5rem; }
-  }
+@media (max-width: 1200px) {
+  nav { padding: 18px 28px; }
+  .hero { padding: 100px 28px 50px; }
+  .ticker .ticker-item { padding: 0 24px; font-size: 1rem; }
+  .promo-banner { margin: 0 28px; padding: 50px; grid-template-columns: 1fr; text-align: center; }
+  .promo-banner::before { right: 100px; }
+  .promo-discount { font-size: 5rem; }
+}
 
-  @media (max-width: 992px) {
-    .hero { grid-template-columns: 1fr; padding-top: 100px; }
-    .hero-right { margin-top: 50px; }
-    .hero-phone { width: 260px; height: 430px; }
-    .hero-float.one { top: 40px; left: 10px; }
-    .hero-float.two { bottom: 20px; right: 10px; }
-    .categories-grid { grid-template-columns: repeat(2, 1fr); }
-    .products-grid { grid-template-columns: repeat(2, 1fr); }
-    .features-grid { grid-template-columns: repeat(2, 1fr); }
-    .footer-grid { grid-template-columns: repeat(2, 1fr); gap: 32px; }
-    .cart-panel { width: 360px; }
-    .newsletter-form { max-width: 100%; }
-  }
+@media (max-width: 992px) {
+  .hero { grid-template-columns: 1fr; padding-top: 100px; }
+  .hero-right { margin-top: 50px; }
+  .hero-phone { width: 260px; height: 430px; }
+  .hero-float.one { top: 40px; left: 10px; }
+  .hero-float.two { bottom: 20px; right: 10px; }
+  .categories-grid { grid-template-columns: repeat(2, 1fr); }
+  .products-grid { grid-template-columns: repeat(2, 1fr); }
+  .features-grid { grid-template-columns: repeat(2, 1fr); }
+  .footer-grid { grid-template-columns: repeat(2, 1fr); gap: 32px; }
+  .cart-panel { width: 360px; }
+  .newsletter-form { max-width: 100%; }
+}
 
-  @media (max-width: 768px) {
-    nav { flex-wrap: wrap; gap: 16px; justify-content: center; padding: 16px 20px; }
-    .nav-links { flex-wrap: wrap; gap: 16px; justify-content: center; }
-    .nav-right { width: 100%; justify-content: center; }
-    .hero { padding: 90px 20px 40px; }
-    .hero::after { font-size: 24vw; right: -8vw; }
-    .hero-title { font-size: clamp(3rem, 12vw, 4.5rem); }
-    .hero-desc { max-width: 100%; margin-bottom: 32px; }
-    .hero-phone { width: 220px; height: 360px; }
-    .categories-grid { grid-template-columns: 1fr; }
-    .promo-banner { padding: 36px 24px; }
-    .promo-banner::before { display: none; }
-    .features-grid { grid-template-columns: 1fr; }
-    section { padding: 80px 20px; }
-    .footer-grid { grid-template-columns: 1fr; gap: 28px; }
-    .newsletter-form { flex-direction: column; gap: 12px; }
-    .newsletter-input { border-right: 1px solid rgba(255,255,255,0.1); }
-    .cart-panel { width: 100%; max-width: 420px; }
-    .cart-footer { padding: 18px 20px; }
-    .product-bottom { flex-direction: column; align-items: flex-start; gap: 14px; }
-    .product-price { font-size: 1rem; }
+@media (max-width: 768px) {
+  .cursor, .cursor-ring { display: none; }
+  
+  nav { flex-wrap: nowrap; gap: 0; justify-content: space-between; padding: 16px 20px; }
+  .mobile-menu-toggle { display: block; }
+  .nav-links { 
+    position: fixed; top: 70px; left: 0; right: 0;
+    flex-direction: column; gap: 0;
+    background: rgba(10,10,10,0.95); 
+    backdrop-filter: blur(20px);
+    max-height: 0; overflow: hidden;
+    transition: max-height 0.3s ease;
+    list-style: none;
   }
+  .nav-links.active { max-height: 300px; }
+  .nav-links a { 
+    display: block;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    color: var(--mid);
+  }
+  .nav-links a:hover { color: var(--white); background: rgba(255,255,255,0.05); }
+  
+  .nav-right { position: fixed; top: 70px; right: 20px; z-index: 101; }
+  
+  .logo { font-size: 1.3rem; letter-spacing: 2px; }
+  .logo img { height: 32px; }
+  
+  .hero { padding: 90px 20px 40px; }
+  .hero::after { font-size: 24vw; right: -8vw; }
+  .hero-title { font-size: clamp(3rem, 12vw, 4.5rem); }
+  .hero-desc { max-width: 100%; margin-bottom: 32px; }
+  .hero-phone { width: 220px; height: 360px; }
+  .hero-float { font-size: 0.7rem; padding: 10px 14px; }
+  
+  .categories-grid { grid-template-columns: 1fr; }
+  .promo-banner { padding: 36px 24px; margin: 0 20px; }
+  .promo-banner::before { display: none; }
+  .features-grid { grid-template-columns: 1fr; }
+  
+  section { padding: 80px 20px; }
+  .footer-grid { grid-template-columns: 1fr; gap: 28px; }
+  .newsletter-form { flex-direction: column; gap: 12px; }
+  .newsletter-input { border-right: 1px solid rgba(255,255,255,0.1); }
+  .cart-panel { width: 100%; max-width: 420px; }
+  .cart-footer { padding: 18px 20px; }
+  .product-bottom { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .product-price { font-size: 1rem; }
+}
 
-  @media (max-width: 540px) {
-    .logo { font-size: 1.5rem; letter-spacing: 2px; }
-    .cart-btn { padding: 10px 16px; gap: 6px; font-size: 0.65rem; }
-    .hero-phone { width: 200px; height: 320px; }
-    .hero-float { font-size: 0.7rem; padding: 10px 14px; }
-    .hero-ctas { flex-direction: column; align-items: stretch; }
-    .btn-primary, .btn-secondary { width: 100%; text-align: center; }
-    .promo-discount { font-size: 4rem; }
-    .product-img { font-size: 4rem; }
-    .product-card { min-height: auto; }
-    .footer-bottom { flex-direction: column; gap: 10px; text-align: center; }
-    .ticker-inner { animation-duration: 15s; }
-  }
+@media (max-width: 540px) {
+  .logo { font-size: 1.2rem; letter-spacing: 2px; }
+  .logo img { height: 28px; }
+  .cart-btn { padding: 10px 16px; gap: 6px; font-size: 0.65rem; }
+  
+  .hero-phone { width: 200px; height: 320px; }
+  .hero-float { font-size: 0.65rem; padding: 8px 12px; }
+  .hero-ctas { flex-direction: column; align-items: stretch; }
+  .btn-primary, .btn-secondary { width: 100%; text-align: center; padding: 14px 24px; }
+  
+  .promo-discount { font-size: 4rem; }
+  .promo-banner { padding: 28px 16px; margin: 0 16px; }
+  .promo-title { font-size: clamp(2rem, 8vw, 2.8rem); }
+  
+  .product-img { font-size: 4rem; }
+  .product-card { min-height: auto; }
+  .products-grid { grid-template-columns: 1fr; }
+  
+  .footer-bottom { flex-direction: column; gap: 10px; text-align: center; }
+  .ticker-inner { animation-duration: 15s; }
+  .section-title { font-size: clamp(1.8rem, 6vw, 2.5rem); }
+  
+  section { padding: 60px 16px; }
+  .cart-btn { font-size: 0.6rem; }
+  .hero-tag { font-size: 0.6rem; padding: 4px 10px; }
+  .btn-primary, .btn-secondary { font-size: 0.65rem; }
+}
+
+@media (max-width: 360px) {
+  .logo { font-size: 1rem; }
+  .logo img { height: 24px; }
+  .hero-title { font-size: clamp(2.2rem, 10vw, 3rem); }
+  .section-title { font-size: clamp(1.5rem, 5vw, 2rem); }
+  .promo-discount { font-size: 3rem; }
+  .product-name { font-size: 1rem; }
+  .product-desc { font-size: 0.75rem; }
+}
 </style>
 
 </head>
@@ -1016,8 +1101,8 @@ white-space: nowrap;
 <!-- NAV -->
 
 <nav>
-  <a href="#" class="logo"><img src="logo.svg" alt="TECH ACCESS" style="height: 40px;"> TECH <span>ACCESS</span></a>
-  <ul class="nav-links">
+  <a href="#" class="logo"><img src="logo.svg" alt="TECH ACCESS"> TECH <span>ACCESS</span></a>
+  <ul class="nav-links" id="navLinks">
     <li><a href="#categories">Catégories</a></li>
     <li><a href="#produits">Produits</a></li>
     <li><a href="#promo">Promo</a></li>
@@ -1029,6 +1114,11 @@ white-space: nowrap;
       <div class="cart-count" id="cartCount">0</div>
     </button>
   </div>
+  <button class="mobile-menu-toggle" id="mobileMenuToggle">
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
 </nav>
 
 <!-- HERO -->
@@ -1085,26 +1175,6 @@ white-space: nowrap;
     <h2 class="section-title">NOS CATÉGORIES</h2>
   </div>
   <div class="categories-grid reveal">
-    <a class="cat-card" href="#produits">
-      <span class="cat-icon">🔋</span>
-      <span class="cat-name">Powerbanks</span>
-      <span class="cat-count">24 produits</span>
-    </a>
-    <a class="cat-card" href="#produits">
-      <span class="cat-icon">🛡️</span>
-      <span class="cat-name">Coques</span>
-      <span class="cat-count">68 produits</span>
-    </a>
-    <a class="cat-card" href="#produits">
-      <span class="cat-icon">🔌</span>
-      <span class="cat-name">Câbles & Chargeurs</span>
-      <span class="cat-count">41 produits</span>
-    </a>
-    <a class="cat-card" href="#produits">
-      <span class="cat-icon">🎧</span>
-      <span class="cat-name">Audio</span>
-      <span class="cat-count">33 produits</span>
-    </a>
   </div>
 </section>
 
@@ -1115,105 +1185,7 @@ white-space: nowrap;
     <span class="section-label">// Best-sellers</span>
     <h2 class="section-title">PRODUITS PHARES</h2>
   </div>
-  <div class="products-grid reveal">
-
-    <div class="product-card">
-      <div class="product-img">
-        🔋
-        <div class="product-badge new">Nouveau</div>
-      </div>
-      <div class="product-info">
-        <div class="product-cat">Powerbank</div>
-        <div class="stars">★★★★★</div>
-        <div class="product-name">Volt Pro 20000</div>
-        <div class="product-desc">20 000mAh · Charge rapide 65W · 3 ports USB</div>
-        <div class="product-bottom">
-          <div class="product-price">59,99€ <span class="old">79,99€</span></div>
-          <button type="button" class="add-btn" onclick="addToCart('Volt Pro 20000', 59.99, '🔋')">+</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="product-card">
-      <div class="product-img">
-        🛡️
-        <div class="product-badge">-30%</div>
-      </div>
-      <div class="product-info">
-        <div class="product-cat">Coque</div>
-        <div class="stars">★★★★☆</div>
-        <div class="product-name">Armor Shield X</div>
-        <div class="product-desc">Résistance militaire · Compatible MagSafe · 6 coloris</div>
-        <div class="product-bottom">
-          <div class="product-price">24,99€ <span class="old">34,99€</span></div>
-          <button type="button" class="add-btn" onclick="addToCart('Armor Shield X', 24.99, '🛡️')">+</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="product-card">
-      <div class="product-img">
-        ⚡
-        <div class="product-badge new">Top vente</div>
-      </div>
-      <div class="product-info">
-        <div class="product-cat">Chargeur</div>
-        <div class="stars">★★★★★</div>
-        <div class="product-name">HyperCharge GaN 65W</div>
-        <div class="product-desc">Technologie GaN · 3 appareils simultanément · Compact</div>
-        <div class="product-bottom">
-          <div class="product-price">44,99€ <span class="old">59,99€</span></div>
-          <button type="button" class="add-btn" onclick="addToCart('HyperCharge GaN 65W', 44.99, '⚡')">+</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="product-card">
-      <div class="product-img">🎧</div>
-      <div class="product-info">
-        <div class="product-cat">Audio</div>
-        <div class="stars">★★★★☆</div>
-        <div class="product-name">SoundDrop TWS</div>
-        <div class="product-desc">Réduction de bruit active · 30h autonomie · IP54</div>
-        <div class="product-bottom">
-          <div class="product-price">79,99€</div>
-          <button type="button" class="add-btn" onclick="addToCart('SoundDrop TWS', 79.99, '🎧')">+</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="product-card">
-      <div class="product-img">
-        🔌
-        <div class="product-badge">-25%</div>
-      </div>
-      <div class="product-info">
-        <div class="product-cat">Câble</div>
-        <div class="stars">★★★★★</div>
-        <div class="product-name">CableX Pro 240W</div>
-        <div class="product-desc">USB-C 240W · Tressé nylon · 2 mètres · Certifié</div>
-        <div class="product-bottom">
-          <div class="product-price">14,99€ <span class="old">19,99€</span></div>
-          <button type="button" class="add-btn" onclick="addToCart('CableX Pro 240W', 14.99, '🔌')">+</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="product-card">
-      <div class="product-img">🔋</div>
-      <div class="product-info">
-        <div class="product-cat">Powerbank</div>
-        <div class="stars">★★★★☆</div>
-        <div class="product-name">Slim 10000 Solar</div>
-        <div class="product-desc">10 000mAh · Panneau solaire intégré · Ultra-mince 8mm</div>
-        <div class="product-bottom">
-          <div class="product-price">39,99€</div>
-          <button type="button" class="add-btn" onclick="addToCart('Slim 10000 Solar', 39.99, '🔋')">+</button>
-        </div>
-      </div>
-    </div>
-
-  </div>
+  <div class="products-grid reveal"></div>
 </section>
 
 <!-- PROMO BANNER -->
@@ -1346,13 +1318,67 @@ white-space: nowrap;
 </div>
 
 <script>
-  // Cursor
+  // Detect if mobile
+  const isMobile = () => window.innerWidth <= 768;
+
+  // Admin data sync
+  let adminData = {
+    products: [],
+    categories: [
+      { id: 1, name: 'Powerbanks', icon: '🔋' },
+      { id: 2, name: 'Coques', icon: '🛡️' },
+      { id: 3, name: 'Câbles & Chargeurs', icon: '🔌' },
+      { id: 4, name: 'Audio', icon: '🎧' }
+    ],
+    ticker: ['LIVRAISON GRATUITE dès 50€', 'ACCESSOIRES PREMIUM', 'TECH ACCESSIBLE A TOUS', 'GARANTIE 2 ANS', 'DAKAR PLATEAU', 'SUPPORT 7J/7'],
+    exchangeRate: 655
+  };
+  
+  function loadAdminData() {
+    const saved = localStorage.getItem('techAccessData');
+    if (saved) {
+      try {
+        adminData = JSON.parse(saved);
+      } catch (e) {
+        console.error('Erreur sync données admin', e);
+      }
+    }
+    initializePage();
+  }
+  
+  function initializePage() {
+    renderCategories();
+    renderProducts();
+    updateTicker();
+  }
+
+  // Mobile menu toggle
+  const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+  const navLinks = document.getElementById('navLinks');
+  
+  mobileMenuToggle.addEventListener('click', () => {
+    mobileMenuToggle.classList.toggle('active');
+    navLinks.classList.toggle('active');
+  });
+  
+  // Close menu when link clicked
+  navLinks.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+      mobileMenuToggle.classList.remove('active');
+      navLinks.classList.remove('active');
+    });
+  });
+
+  // Cursor (disabled on mobile)
   const cursor = document.getElementById('cursor');
   const ring = document.getElementById('cursorRing');
-  document.addEventListener('mousemove', e => {
-    cursor.style.transform = `translate(${e.clientX - 7}px, ${e.clientY - 7}px)`;
-    setTimeout(() => { ring.style.transform = `translate(${e.clientX - 20}px, ${e.clientY - 20}px)`; }, 60);
-  });
+  
+  if (!isMobile()) {
+    document.addEventListener('mousemove', e => {
+      cursor.style.transform = `translate(${e.clientX - 7}px, ${e.clientY - 7}px)`;
+      setTimeout(() => { ring.style.transform = `translate(${e.clientX - 20}px, ${e.clientY - 20}px)`; }, 60);
+    });
+  }
 
   // Cart state
   let cart = [];
@@ -1364,12 +1390,14 @@ white-space: nowrap;
     document.getElementById('cartPanel').classList.toggle('open', cartOpen);
   }
 
-  function addToCart(name, price, icon) {
-    const existing = cart.find(i => i.name === name);
+  function addToCart(productId) {
+    const product = adminData.products.find(p => p.id === productId);
+    if (!product) return;
+    const existing = cart.find(i => i.name === product.name);
     if (existing) { existing.qty++; }
-    else { cart.push({ name, price, icon, qty: 1 }); }
+    else { cart.push({ name: product.name, price: product.price, icon: product.icon, image: product.image || null, qty: 1 }); }
     updateCart();
-    showToast(`${icon} ${name} ajouté !`);
+    showToast(`${product.icon || '🛒'} ${product.name} ajouté !`);
   }
 
   function updateCart() {
@@ -1377,7 +1405,8 @@ white-space: nowrap;
     document.getElementById('cartCount').textContent = count;
 
     const total = cart.reduce((a, i) => a + i.price * i.qty, 0);
-    document.getElementById('cartTotal').textContent = total.toFixed(2).replace('.', ',') + '€';
+    const totalFCFA = (total * adminData.exchangeRate).toFixed(0);
+    document.getElementById('cartTotal').textContent = totalFCFA + ' FCFA';
 
     const itemsEl = document.getElementById('cartItems');
     const footerEl = document.getElementById('cartFooter');
@@ -1387,12 +1416,14 @@ white-space: nowrap;
       footerEl.style.display = 'none';
     } else {
       footerEl.style.display = 'block';
-      itemsEl.innerHTML = cart.map((item, idx) => `
+      itemsEl.innerHTML = cart.map((item, idx) => {
+        const itemTotalFCFA = (item.price * item.qty * adminData.exchangeRate).toFixed(0);
+        return `
         <div class="cart-item">
-          <div class="cart-item-img">${item.icon}</div>
+          <div class="cart-item-img">${item.image ? `<img src="${item.image}" style="width: 100%; height: 100%; object-fit: cover;">` : item.icon}</div>
           <div class="cart-item-info">
             <div class="cart-item-name">${item.name}</div>
-            <div class="cart-item-price">${(item.price * item.qty).toFixed(2).replace('.', ',')}€</div>
+            <div class="cart-item-price">${itemTotalFCFA} FCFA</div>
           </div>
           <div class="cart-item-qty">
             <button class="qty-btn" onclick="changeQty(${idx}, -1)">−</button>
@@ -1400,7 +1431,8 @@ white-space: nowrap;
             <button class="qty-btn" onclick="changeQty(${idx}, 1)">+</button>
           </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
     }
   }
 
@@ -1411,7 +1443,7 @@ white-space: nowrap;
   }
 
   function getCartTotal() {
-    return cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+    return cart.reduce((sum, item) => sum + item.price * item.qty, 0) * adminData.exchangeRate;
   }
 
   function checkout() {
@@ -1437,7 +1469,7 @@ white-space: nowrap;
       const response = await fetch('http://localhost:3000/api/wave', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: cart, total: total, currency: 'EUR' })
+        body: JSON.stringify({ items: cart, total: total, currency: 'XOF' })
       });
 
       if (!response.ok) {
@@ -1474,12 +1506,108 @@ white-space: nowrap;
     }
   }
 
+  // Render categories
+  function renderCategories() {
+    const grid = document.querySelector('.categories-grid');
+    grid.innerHTML = adminData.categories.map(cat => {
+      const count = adminData.products.filter(p => p.category === cat.id).length;
+      return `
+        <a class="cat-card" href="#produits">
+          <span class="cat-icon">${cat.icon}</span>
+          <span class="cat-name">${cat.name}</span>
+          <span class="cat-count">${count} produits</span>
+        </a>
+      `;
+    }).join('');
+  }
+
+  // Render products
+  function renderProducts() {
+    const grid = document.querySelector('.products-grid');
+    grid.innerHTML = adminData.products.map(product => {
+      const priceEUR = product.price || 0;
+      const priceFCFA = (priceEUR * adminData.exchangeRate).toFixed(0);
+      const stars = '★'.repeat(Math.floor(product.rating || 5)) + '☆'.repeat(5 - Math.floor(product.rating || 5));
+      
+      return `
+        <div class="product-card">
+          <div class="product-img" style="font-size: 0;">
+            ${product.image ? `<img src="${product.image}" style="width: 100%; height: 100%; object-fit: cover;">` : `<span style="font-size: 5rem;">${product.icon || '📦'}</span>`}
+            ${product.badge ? `<div class="product-badge ${product.badge.includes('Nouveau') || product.badge.includes('vente') ? 'new' : ''}">${product.badge}</div>` : ''}
+          </div>
+          <div class="product-info">
+            <div class="product-cat">${adminData.categories.find(c => c.id == product.category)?.name || 'Produit'}</div>
+            <div class="stars">★★★★★</div>
+            <div class="product-name">${product.name}</div>
+            <div class="product-desc">${product.desc}</div>
+            <div class="product-bottom">
+              <div class="product-price">${priceFCFA} FCFA</div>
+              <button type="button" class="add-btn" onclick="addToCart(${product.id})">+</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    // Si pas de produits, afficher des exemples
+    if (adminData.products.length === 0) {
+      grid.innerHTML = `
+        <div class="product-card">
+          <div class="product-img">🔋</div>
+          <div class="product-info">
+            <div class="product-cat">Powerbank</div>
+            <div class="stars">★★★★★</div>
+            <div class="product-name">Volt Pro 20000</div>
+            <div class="product-desc">20 000mAh · Charge rapide 65W · 3 ports USB</div>
+            <div class="product-bottom">
+              <div class="product-price">39,270 FCFA</div>
+              <button type="button" class="add-btn" onclick="showToast('Ajoutez un produit via l\'admin pour utiliser le panier.')">+</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  // Update ticker
+  function updateTicker() {
+    const tickerInner = document.querySelector('.ticker-inner');
+    const items = adminData.ticker || [];
+    
+    tickerInner.innerHTML = items.map((item, idx) => {
+      const dot = idx === items.length - 1 ? '' : '<span class="ticker-dot">●</span>';
+      return `<span class="ticker-item">${item} ${dot}</span>`;
+    }).join('') + 
+    items.map((item, idx) => {
+      const dot = idx === items.length - 1 ? '' : '<span class="ticker-dot">●</span>';
+      return `<span class="ticker-item">${item} ${dot}</span>`;
+    }).join('');
+  }
+
   // Scroll reveal
   const reveals = document.querySelectorAll('.reveal');
   const obs = new IntersectionObserver(entries => {
     entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
   }, { threshold: 0.1 });
   reveals.forEach(r => obs.observe(r));
+  
+  // Close menu on resize
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 768) {
+      mobileMenuToggle.classList.remove('active');
+      navLinks.classList.remove('active');
+    }
+  });
+  
+  // Listen for updates from admin
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'techAccessData') {
+      loadAdminData();
+    }
+  });
+  
+  // Init page
+  loadAdminData();
 </script>
 
 </body>
