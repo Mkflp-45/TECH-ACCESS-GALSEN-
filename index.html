@@ -1359,7 +1359,10 @@ const db = firebase.firestore();
     const saved = localStorage.getItem('techAccessData');
     if (saved) {
       try {
-        adminData = JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (parsed && Array.isArray(parsed.products)) {
+          adminData = parsed;
+        }
       } catch (e) {
         console.error('Erreur sync données admin', e);
       }
@@ -1389,6 +1392,7 @@ const db = firebase.firestore();
         });
       });
       console.log('✅ Produits chargés depuis Firestore:', adminData.products.length);
+      localStorage.setItem('techAccessData', JSON.stringify(adminData));
       initializePage();
     } catch (error) {
       console.warn('⚠️ Firestore non disponible ou erreur permissions:', error);
@@ -1418,6 +1422,7 @@ const db = firebase.firestore();
           });
         });
         console.log('🔄 Données Firestore mises à jour:', adminData.products.length, 'produits');
+        localStorage.setItem('techAccessData', JSON.stringify(adminData));
         renderProducts();
       }, error => {
         console.error('❌ Erreur synchronisation Firestore:', error);

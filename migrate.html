@@ -1,156 +1,177 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Migration vers Firebase</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Migration Firestore - TECH ACCESS</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 24px; background: #f7f9fc; color: #111; }
+    h1 { margin-bottom: 16px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+    button { padding: 12px 18px; border: none; border-radius: 8px; cursor: pointer; background: #0066cc; color: #fff; transition: transform .15s ease, background .15s ease; }
+    button:hover { transform: translateY(-1px); background: #0052a3; }
+    button.danger { background: #cc3300; }
+    button.secondary { background: #444; }
+    #status { margin-bottom: 18px; line-height: 1.6; }
+    #details { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 12px 32px rgba(0,0,0,.08); max-width: 100%; overflow-wrap: break-word; }
+    .doc-item { padding: 10px 0; border-bottom: 1px solid #efefef; }
+    .doc-item:last-child { border-bottom: none; }
+    .doc-item span { display: inline-block; min-width: 90px; font-weight: 700; }
+  </style>
 </head>
 <body>
-    <h1>Migration des produits vers Firebase</h1>
-    <button onclick="migrateProducts()">Migrer les produits</button>
-    <div id="status"></div>
+  <h1>Migration Firestore</h1>
+  <div class="toolbar">
+    <button id="scanBtn">Vérifier la collection</button>
+    <button id="fixBtn">Standardiser les produits</button>
+    <button id="resetBtn">Réinitialiser avec les exemples</button>
+    <button id="clearBtn" class="danger">Supprimer tous les produits</button>
+  </div>
+  <div id="status">Chargement...</div>
+  <div id="details"></div>
 
-    <!-- Firebase SDK --><script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore-compat.js"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBEyZ7Lr79bRfLTyezU3lGp6QfapnFBSt4",
+      authDomain: "tech-acces-galsen.firebaseapp.com",
+      projectId: "tech-acces-galsen",
+      storageBucket: "tech-acces-galsen.firebasestorage.app",
+      messagingSenderId: "586222995096",
+      appId: "1:586222995096:web:ce3fb1e384b2e69ca032ed",
+      measurementId: "G-735V82LY58"
+    };
 
-    <script>
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyBEyZ7Lr79bRfLTyezU3lGp6QfapnFBSt4",
-            authDomain: "tech-acces-galsen.firebaseapp.com",
-            projectId: "tech-acces-galsen",
-            storageBucket: "tech-acces-galsen.firebasestorage.app",
-            messagingSenderId: "586222995096",
-            appId: "1:586222995096:web:ce3fb1e384b2e69ca032ed",
-            measurementId: "G-735V82LY58"
-        };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+    const sampleProducts = [
+      { id: 'volt-pro-20k', name: 'Volt Pro 20000', price: 45000, category: 1, icon: '⚡', image: '', description: '20 000mAh · Charge rapide 65W · 3 ports USB', rating: 5, badge: 'Nouveau' },
+      { id: 'coque-iphone-15', name: 'Coque iPhone 15', price: 15000, category: 2, icon: '🛡️', image: '', description: 'Protection complète · Anti-chute · Design élégant', rating: 5, badge: 'Nouveau' },
+      { id: 'cable-usb-c-2m', name: 'Câble USB-C 2m', price: 8000, category: 3, icon: '🔌', image: '', description: 'Charge rapide · Certifié MFi · Longueur 2m', rating: 5, badge: 'Nouveau' },
+      { id: 'powerbank-10000', name: 'Powerbank 10000mAh', price: 25000, category: 1, icon: '🔋', image: '', description: '10 000mAh · Charge rapide 18W · Compact', rating: 5, badge: 'Nouveau' },
+      { id: 'coque-samsung-s24', name: 'Coque Samsung S24', price: 12000, category: 2, icon: '📱', image: '', description: 'Protection écran · Anti-rayures · Léger', rating: 5, badge: 'Nouveau' },
+      { id: 'casque-bluetooth', name: 'Casque Bluetooth', price: 35000, category: 4, icon: '🎧', image: '', description: 'Son haute qualité · Autonomie 30h · Réduction bruit', rating: 5, badge: 'Nouveau' }
+    ];
 
-        // Produits d'exemple à migrer
-        const sampleProducts = [
-            {
-                id: "volt-pro-20k",
-                name: "Volt Pro 20000",
-                price: 45000,
-                category: 1,
-                icon: "⚡",
-                image: "",
-                description: "20 000mAh · Charge rapide 65W · 3 ports USB"
-            },
-            {
-                id: "coque-iphone-15",
-                name: "Coque iPhone 15",
-                price: 15000,
-                category: 2,
-                icon: "🛡️",
-                image: "",
-                description: "Protection complète · Anti-chute · Design élégant"
-            },
-            {
-                id: "cable-usb-c-2m",
-                name: "Câble USB-C 2m",
-                price: 8000,
-                category: 3,
-                icon: "🔌",
-                image: "",
-                description: "Charge rapide · Certifié MFi · Longueur 2m"
-            },
-            {
-                id: "powerbank-10000",
-                name: "Powerbank 10000mAh",
-                price: 25000,
-                category: 1,
-                icon: "🔋",
-                image: "",
-                description: "10 000mAh · Charge rapide 18W · Compact"
-            },
-            {
-                id: "coque-samsung-s24",
-                name: "Coque Samsung S24",
-                price: 12000,
-                category: 2,
-                icon: "📱",
-                image: "",
-                description: "Protection écran · Anti-rayures · Léger"
-            },
-            {
-                id: "casque-bluetooth",
-                name: "Casque Bluetooth",
-                price: 35000,
-                category: 4,
-                icon: "🎧",
-                image: "",
-                description: "Son haute qualité · Autonomie 30h · Réduction bruit"
-            }
-        ];
+    function normalizeProduct(product = {}) {
+      return {
+        name: String(product.name || product.title || '').trim(),
+        price: Number(product.price) || 0,
+        category: product.category != null ? product.category : (product.cat != null ? product.cat : 0),
+        icon: String(product.icon || '📦'),
+        image: String(product.image || ''),
+        description: String(product.description || product.desc || '').trim(),
+        rating: Number(product.rating) || 0,
+        badge: String(product.badge || 'Nouveau')
+      };
+    }
 
-        async function migrateProducts() {
-            const status = document.getElementById('status');
-            status.innerHTML = 'Migration en cours...';
+    function productIsValid(product) {
+      return product.name.length > 0 && product.price > 0;
+    }
 
-            try {
-                // Vérifier s'il y a des données locales à migrer
-                const localData = localStorage.getItem('techAccessData');
-                let productsToMigrate = sampleProducts;
+    function setStatus(html) { document.getElementById('status').innerHTML = html; }
+    function setDetails(html) { document.getElementById('details').innerHTML = html; }
 
-                if (localData) {
-                    const parsed = JSON.parse(localData);
-                    if (parsed.products && parsed.products.length > 0) {
-                        productsToMigrate = parsed.products;
-                        status.innerHTML += '<br>✅ Données locales trouvées, migration en cours...';
-                    }
-                }
+    async function fetchProducts() {
+      const snapshot = await db.collection('products').get();
+      const products = [];
+      snapshot.forEach(doc => products.push({ id: String(doc.id), ...doc.data() }));
+      return products;
+    }
 
-                // Ajouter chaque produit à Firestore
-                for (const product of productsToMigrate) {
-                    const productData = {
-                        name: product.name,
-                        price: Number(product.price) || 0,
-                        category: product.category,
-                        icon: product.icon || '📦',
-                        image: product.image || '',
-                        description: product.desc || product.description || '',
-                        rating: Number(product.rating) || 0,
-                        badge: product.badge || ''
-                    };
+    function renderProductList(products) {
+      if (!products.length) return '<p>Aucun produit trouvé.</p>';
+      return products.map((product, idx) => {
+        const normalized = normalizeProduct(product);
+        const valid = productIsValid(normalized);
+        return `<div class="doc-item"><span>#${idx + 1}</span><strong>${normalized.name || '[sans nom]'}</strong> — ${valid ? 'OK' : '<span style="color:#c00;">INVALIDE</span>'}<br>id=${product.id}<br>price=${product.price} category=${product.category}<br>description=${normalized.description || '[vide]'}</div>`;
+      }).join('');
+    }
 
-                    const productId = product.id != null ? String(product.id) : '';
-                    if (productId) {
-                        // Utiliser l'ID existant
-                        await db.collection('products').doc(productId).set(productData);
-                    } else {
-                        // Générer un nouvel ID
-                        const docRef = await db.collection('products').add(productData);
-                        console.log('Produit ajouté avec ID:', docRef.id);
-                    }
-                }
+    async function scanFirestore() {
+      try {
+        setStatus('🔎 Lecture de la collection products...');
+        const products = await fetchProducts();
+        const invalidCount = products.filter(p => !productIsValid(normalizeProduct(p))).length;
+        setStatus(`✅ ${products.length} produits trouvés. ${invalidCount} invalides détectés.`);
+        setDetails(renderProductList(products));
+      } catch (error) {
+        setStatus(`❌ Erreur lecture Firestore : ${error.message}`);
+        setDetails('');
+      }
+    }
 
-                status.innerHTML = `✅ Migration terminée ! ${productsToMigrate.length} produits ajoutés à Firestore.`;
-                console.log('Migration réussie');
+    async function standardizeProducts() {
+      try {
+        setStatus('🛠️ Standardisation en cours...');
+        const products = await fetchProducts();
+        await Promise.all(products.map(product => {
+          const normalized = normalizeProduct(product);
+          return db.collection('products').doc(product.id).set(normalized, { merge: true });
+        }));
+        setStatus(`✅ Standardisation terminée sur ${products.length} produits.`);
+        await scanFirestore();
+      } catch (error) {
+        setStatus(`❌ Erreur standardisation : ${error.message}`);
+      }
+    }
 
-            } catch (error) {
-                status.innerHTML = `❌ Erreur lors de la migration: ${error.message}`;
-                console.error('Erreur migration:', error);
-            }
+    async function clearProducts() {
+      try {
+        if (!confirm('Supprimer tous les produits Firestore ?')) return;
+        setStatus('🧹 Suppression des produits...');
+        const products = await fetchProducts();
+        await Promise.all(products.map(product => db.collection('products').doc(product.id).delete()));
+        setStatus(`✅ ${products.length} produits supprimés.`);
+        setDetails('');
+      } catch (error) {
+        setStatus(`❌ Erreur suppression : ${error.message}`);
+      }
+    }
+
+    async function resetWithSamples() {
+      try {
+        if (!confirm('Réinitialiser la collection avec les exemples ? Cela écrasera les produits existants.')) return;
+        setStatus('♻️ Réinitialisation de la collection...');
+        await clearProducts();
+        await Promise.all(sampleProducts.map(product => {
+          const normalized = normalizeProduct(product);
+          return db.collection('products').doc(String(product.id)).set(normalized);
+        }));
+        setStatus(`✅ Réinitialisation terminée : ${sampleProducts.length} produits ajoutés.`);
+        await scanFirestore();
+      } catch (error) {
+        setStatus(`❌ Erreur réinitialisation : ${error.message}`);
+      }
+    }
+
+    document.getElementById('scanBtn').addEventListener('click', scanFirestore);
+    document.getElementById('fixBtn').addEventListener('click', standardizeProducts);
+    document.getElementById('clearBtn').addEventListener('click', clearProducts);
+    document.getElementById('resetBtn').addEventListener('click', resetWithSamples);
+
+    async function initializeMigrationPage() {
+      try {
+        const products = await fetchProducts();
+        if (!products.length) {
+          setStatus('Aucun produit dans Firestore. Utilisez "Réinitialiser avec les exemples" ou "Standardiser les produits".');
+          setDetails('');
+          return;
         }
+        const invalidCount = products.filter(p => !productIsValid(normalizeProduct(p))).length;
+        setStatus(`⚠️ ${products.length} produits trouvés. ${invalidCount} invalides. Utilisez "Standardiser les produits".`);
+        setDetails(renderProductList(products));
+      } catch (error) {
+        setStatus(`❌ Impossible de lire Firestore : ${error.message}`);
+        setDetails('');
+      }
+    }
 
-        // Auto-migration au chargement si pas de produits dans Firestore
-        window.addEventListener('load', async () => {
-            try {
-                const querySnapshot = await db.collection('products').get();
-                if (querySnapshot.empty) {
-                    console.log('Aucun produit trouvé, migration automatique...');
-                    migrateProducts();
-                } else {
-                    document.getElementById('status').innerHTML = `✅ ${querySnapshot.size} produits déjà présents dans Firestore.`;
-                }
-            } catch (error) {
-                console.error('Erreur vérification Firestore:', error);
-            }
-        });
-    </script>
+    window.addEventListener('load', initializeMigrationPage);
+  </script>
 </body>
 </html>
