@@ -1084,8 +1084,8 @@ white-space: nowrap;
 </style>
 
 <!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore-compat.js"></script>
 
 <script>
 // Firebase Configuration
@@ -1605,7 +1605,7 @@ const db = firebase.firestore();
             <div class="product-desc">${product.desc}</div>
             <div class="product-bottom">
               <div class="product-price">${priceFCFA} FCFA</div>
-              <button type="button" class="add-btn" onclick="addToCart(${product.id})">+</button>
+              <button type="button" class="add-btn" onclick="addToCart('${product.id}')">+</button>
             </div>
           </div>
         </div>
