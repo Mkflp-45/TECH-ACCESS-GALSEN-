@@ -1376,10 +1376,10 @@ const db = firebase.firestore();
     try {
       console.log('📥 Chargement des produits depuis Firestore...');
       const querySnapshot = await db.collection('products').get();
-      adminData.products = [];
+      const firestoreProducts = [];
       querySnapshot.forEach(doc => {
         const data = doc.data() || {};
-        adminData.products.push({
+        firestoreProducts.push({
           id: String(doc.id),
           name: data.name || '',
           price: Number(data.price) || 0,
@@ -1391,12 +1391,16 @@ const db = firebase.firestore();
           badge: data.badge || ''
         });
       });
+      // Only update if we successfully got data from Firestore
+      if (firestoreProducts.length > 0 || querySnapshot.empty) {
+        adminData.products = firestoreProducts;
+      }
       console.log('✅ Produits chargés depuis Firestore:', adminData.products.length);
       localStorage.setItem('techAccessData', JSON.stringify(adminData));
       initializePage();
     } catch (error) {
       console.warn('⚠️ Firestore non disponible ou erreur permissions:', error);
-      console.log('💾 Utilisation des données locales');
+      console.log('💾 Conservation des données locales');
       initializePage();
     }
   }
@@ -1406,10 +1410,10 @@ const db = firebase.firestore();
     try {
       console.log('🔄 Activation synchronisation temps réel...');
       db.collection('products').onSnapshot(snapshot => {
-        adminData.products = [];
+        const firestoreProducts = [];
         snapshot.forEach(doc => {
           const data = doc.data() || {};
-          adminData.products.push({
+          firestoreProducts.push({
             id: String(doc.id),
             name: data.name || '',
             price: Number(data.price) || 0,
@@ -1421,6 +1425,10 @@ const db = firebase.firestore();
             badge: data.badge || ''
           });
         });
+        // Only update if we got products from Firestore
+        if (firestoreProducts.length > 0 || snapshot.empty) {
+          adminData.products = firestoreProducts;
+        }
         console.log('🔄 Données Firestore mises à jour:', adminData.products.length, 'produits');
         localStorage.setItem('techAccessData', JSON.stringify(adminData));
         renderProducts();

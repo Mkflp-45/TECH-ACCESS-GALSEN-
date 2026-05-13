@@ -900,10 +900,10 @@ const db = firebase.firestore();
     try {
       console.log('📥 Chargement des produits depuis Firestore...');
       const querySnapshot = await db.collection('products').get();
-      currentData.products = [];
+      const firestoreProducts = [];
       querySnapshot.forEach(doc => {
         const data = doc.data() || {};
-        currentData.products.push({
+        firestoreProducts.push({
           id: String(doc.id),
           name: data.name || '',
           price: Number(data.price) || 0,
@@ -915,15 +915,22 @@ const db = firebase.firestore();
           badge: data.badge || ''
         });
       });
+      // Only update if we successfully got data from Firestore
+      if (firestoreProducts.length > 0 || querySnapshot.empty) {
+        currentData.products = firestoreProducts;
+      }
       console.log('✅ Produits chargés depuis Firestore:', currentData.products.length);
       updateDashboard();
       renderProducts();
     } catch (error) {
       console.warn('⚠️ Firestore erreur chargement:', error);
-      console.log('💾 Utilisation des données locales');
+      console.log('💾 Conservation des données locales (produits non synchronisés)');
       if (error.code === 'permission-denied') {
         console.log('🔐 Les règles Firestore ne permettent pas la lecture. Consulte FIRESTORE_RULES.md');
       }
+      // Don't clear products - keep localStorage data
+      updateDashboard();
+      renderProducts();
     }
   }
   
@@ -959,6 +966,9 @@ const db = firebase.firestore();
       console.log('⚠️ Message:', error.message);
       if (error.code === 'permission-denied') {
         console.log('🔐 Les règles Firestore ne permettent pas l\'écriture. Consulte FIRESTORE_RULES.md');
+        showToast('⚠️ Sync Firestore bloquée - données sauvegardées localement uniquement', 'error');
+      } else {
+        showToast('⚠️ Erreur de synchronisation - vérifiez votre connexion', 'error');
       }
     }
   }
