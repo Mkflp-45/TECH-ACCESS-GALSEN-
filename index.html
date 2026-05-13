@@ -1083,6 +1083,27 @@ white-space: nowrap;
 }
 </style>
 
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js"></script>
+
+<script>
+// Firebase Configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBEyZ7Lr79bRfLTyezU3lGp6QfapnFBSt4",
+  authDomain: "tech-acces-galsen.firebaseapp.com",
+  projectId: "tech-acces-galsen",
+  storageBucket: "tech-acces-galsen.firebasestorage.app",
+  messagingSenderId: "586222995096",
+  appId: "1:586222995096:web:ce3fb1e384b2e69ca032ed",
+  measurementId: "G-735V82LY58"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+</script>
+
 </head>
 <body>
 
@@ -1343,7 +1364,46 @@ white-space: nowrap;
         console.error('Erreur sync données admin', e);
       }
     }
-    initializePage();
+    
+    // Load products from Firestore
+    loadProductsFromFirestore();
+  }
+  
+  async function loadProductsFromFirestore() {
+    try {
+      const querySnapshot = await db.collection('products').get();
+      adminData.products = [];
+      querySnapshot.forEach(doc => {
+        adminData.products.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+      console.log('✅ Produits chargés depuis Firestore:', adminData.products.length);
+      initializePage();
+    } catch (error) {
+      console.warn('⚠️ Firestore non disponible, utilisation des données locales:', error);
+      initializePage();
+    }
+  }
+  
+  // Sync Firestore data in real-time
+  function syncFirestoreData() {
+    try {
+      db.collection('products').onSnapshot(snapshot => {
+        adminData.products = [];
+        snapshot.forEach(doc => {
+          adminData.products.push({
+            id: doc.id,
+            ...doc.data()
+          });
+        });
+        console.log('🔄 Données Firestore mises à jour');
+        renderProducts();
+      });
+    } catch (error) {
+      console.warn('⚠️ Sync temps réel non disponible:', error);
+    }
   }
   
   function initializePage() {
@@ -1602,6 +1662,11 @@ white-space: nowrap;
   
   // Init page
   loadAdminData();
+  
+  // Start real-time sync with Firestore
+  setTimeout(() => {
+    syncFirestoreData();
+  }, 1000);
 </script>
 
 </body>

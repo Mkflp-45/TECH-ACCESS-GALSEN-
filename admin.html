@@ -538,6 +538,28 @@
     .stats-grid { grid-template-columns: 1fr; }
   }
 </style>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js"></script>
+
+<script>
+// Firebase Configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBEyZ7Lr79bRfLTyezU3lGp6QfapnFBSt4",
+  authDomain: "tech-acces-galsen.firebaseapp.com",
+  projectId: "tech-acces-galsen",
+  storageBucket: "tech-acces-galsen.firebasestorage.app",
+  messagingSenderId: "586222995096",
+  appId: "1:586222995096:web:ce3fb1e384b2e69ca032ed",
+  measurementId: "G-735V82LY58"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+</script>
+
 </head>
 <body>
 
@@ -870,11 +892,53 @@
         console.error('Erreur chargement données', e);
       }
     }
+    // Load products from Firestore
+    loadProductsFromFirestore();
+  }
+  
+  async function loadProductsFromFirestore() {
+    try {
+      const querySnapshot = await db.collection('products').get();
+      currentData.products = [];
+      querySnapshot.forEach(doc => {
+        currentData.products.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+      console.log('✅ Produits chargés depuis Firestore:', currentData.products.length);
+      updateDashboard();
+      renderProducts();
+    } catch (error) {
+      console.warn('⚠️ Firestore non disponible, utilisation des données locales:', error);
+    }
   }
   
   function saveData() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(currentData));
+    syncWithFirestore();
     syncWithMain();
+  }
+  
+  async function syncWithFirestore() {
+    try {
+      // Sync products to Firestore
+      for (const product of currentData.products) {
+        if (product.id && typeof product.id === 'string') {
+          await db.collection('products').doc(product.id).set({
+            name: product.name,
+            price: product.price,
+            category: product.category,
+            icon: product.icon,
+            image: product.image || '',
+            description: product.description || ''
+          }, { merge: true });
+        }
+      }
+      console.log('✅ Données synchronisées avec Firestore');
+    } catch (error) {
+      console.error('⚠️ Erreur sync Firestore:', error);
+    }
   }
   
   function syncWithMain() {
