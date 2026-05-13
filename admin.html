@@ -902,9 +902,17 @@ const db = firebase.firestore();
       const querySnapshot = await db.collection('products').get();
       currentData.products = [];
       querySnapshot.forEach(doc => {
+        const data = doc.data() || {};
         currentData.products.push({
-          id: doc.id,
-          ...doc.data()
+          id: String(doc.id),
+          name: data.name || '',
+          price: Number(data.price) || 0,
+          category: data.category || 'Autre',
+          desc: data.desc || data.description || '',
+          icon: data.icon || '📦',
+          image: data.image || '',
+          rating: Number(data.rating) || 0,
+          badge: data.badge || ''
         });
       });
       console.log('✅ Produits chargés depuis Firestore:', currentData.products.length);
@@ -930,16 +938,20 @@ const db = firebase.firestore();
       console.log('📤 Synchronisation vers Firestore...');
       // Sync products to Firestore
       for (const product of currentData.products) {
-        if (product.id && typeof product.id === 'string') {
-          await db.collection('products').doc(product.id).set({
-            name: product.name,
-            price: product.price,
-            category: product.category,
-            icon: product.icon,
-            image: product.image || '',
-            description: product.description || ''
-          }, { merge: true });
+        const productId = product.id != null ? String(product.id) : '';
+        if (!productId) continue;
+        if (!product.name || !Number.isFinite(Number(product.price))) {
+          console.warn('Produit non synchronisé car incomplet:', product);
+          continue;
         }
+        await db.collection('products').doc(productId).set({
+          name: product.name,
+          price: Number(product.price),
+          category: product.category || 'Autre',
+          icon: product.icon || '📦',
+          image: product.image || '',
+          description: product.desc || product.description || ''
+        }, { merge: true });
       }
       console.log('✅ Données synchronisées avec Firestore (', currentData.products.length, ' produits)');
     } catch (error) {
@@ -1028,7 +1040,7 @@ const db = firebase.firestore();
     const rating = parseFloat(document.getElementById('productRating').value);
     const badge = document.getElementById('productBadge').value.trim();
     
-    if (!name || !price || !category || !desc) {
+    if (!name || !Number.isFinite(price) || !category || !desc) {
       showToast('❌ Remplissez tous les champs obligatoires', 'error');
       return;
     }
@@ -1040,18 +1052,21 @@ const db = firebase.firestore();
     }
     
     if (currentEditId) {
-      const product = currentData.products.find(p => p.id === currentEditId);
-      product.name = name;
-      product.price = price;
-      product.category = category;
-      product.desc = desc;
-      product.rating = rating;
-      product.badge = badge;
-      if (imageData) product.image = imageData;
+      const product = currentData.products.find(p => String(p.id) === String(currentEditId));
+      if (product) {
+        product.name = name;
+        product.price = price;
+        product.category = category;
+        product.desc = desc;
+        product.rating = rating;
+        product.badge = badge;
+        if (imageData) product.image = imageData;
+      }
     } else {
-      const newId = Math.max(...currentData.products.map(p => p.id || 0), 0) + 1;
+      const ids = currentData.products.map(p => Number(p.id)).filter(Number.isFinite);
+      const newId = ids.length ? Math.max(...ids) + 1 : 1;
       currentData.products.push({
-        id: newId,
+        id: String(newId),
         name,
         price,
         category,
@@ -1071,7 +1086,7 @@ const db = firebase.firestore();
   
   function deleteProduct(id) {
     if (confirm('Êtes-vous sûr?')) {
-      currentData.products = currentData.products.filter(p => p.id !== id);
+      currentData.products = currentData.products.filter(p => String(p.id) !== String(id));
       saveData();
       renderProducts();
       showToast('✅ Produit supprimé!', 'success');
@@ -1080,13 +1095,16 @@ const db = firebase.firestore();
   
   function renderProducts() {
     const tbody = document.getElementById('productsTableBody');
-    tbody.innerHTML = currentData.products.map(p => `
+    tbody.innerHTML = currentData.products.map(p => {
+      const price = Number(p.price) || 0;
+      const exchangeRate = Number(currentData.exchangeRate) || 1;
+      return `
       <tr>
-        <td style="font-size: 1.5rem;">${p.image ? `<img src="${p.image}" style="width: 40px; height: 40px; border-radius: 4px;">` : p.icon}</td>
-        <td>${p.name}</td>
-        <td>${p.category}</td>
-        <td>${p.price.toFixed(2)}€</td>
-        <td>${(p.price * currentData.exchangeRate).toFixed(0)} FCFA</td>
+        <td style="font-size: 1.5rem;">${p.image ? `<img src="${p.image}" style="width: 40px; height: 40px; border-radius: 4px;">` : p.icon || '📦'}</td>
+        <td>${p.name || '—'}</td>
+        <td>${p.category || 'Autre'}</td>
+        <td>${price.toFixed(2)}€</td>
+        <td>${(price * exchangeRate).toFixed(0)} FCFA</td>
         <td>
           <div class="action-buttons">
             <button class="btn-edit" onclick="openProductModal('${p.id}')">✏️ Éditer</button>
@@ -1094,7 +1112,8 @@ const db = firebase.firestore();
           </div>
         </td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
   }
   
   // CATEGORIES

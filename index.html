@@ -1375,9 +1375,17 @@ const db = firebase.firestore();
       const querySnapshot = await db.collection('products').get();
       adminData.products = [];
       querySnapshot.forEach(doc => {
+        const data = doc.data() || {};
         adminData.products.push({
-          id: doc.id,
-          ...doc.data()
+          id: String(doc.id),
+          name: data.name || '',
+          price: Number(data.price) || 0,
+          category: data.category || '',
+          desc: data.desc || data.description || '',
+          icon: data.icon || '📦',
+          image: data.image || '',
+          rating: Number(data.rating) || 0,
+          badge: data.badge || ''
         });
       });
       console.log('✅ Produits chargés depuis Firestore:', adminData.products.length);
@@ -1396,9 +1404,17 @@ const db = firebase.firestore();
       db.collection('products').onSnapshot(snapshot => {
         adminData.products = [];
         snapshot.forEach(doc => {
+          const data = doc.data() || {};
           adminData.products.push({
-            id: doc.id,
-            ...doc.data()
+            id: String(doc.id),
+            name: data.name || '',
+            price: Number(data.price) || 0,
+            category: data.category || '',
+            desc: data.desc || data.description || '',
+            icon: data.icon || '📦',
+            image: data.image || '',
+            rating: Number(data.rating) || 0,
+            badge: data.badge || ''
           });
         });
         console.log('🔄 Données Firestore mises à jour:', adminData.products.length, 'produits');
@@ -1465,11 +1481,12 @@ const db = firebase.firestore();
   }
 
   function addToCart(productId) {
-    const product = adminData.products.find(p => p.id === productId);
+    const product = adminData.products.find(p => String(p.id) === String(productId));
     if (!product) return;
     const existing = cart.find(i => i.name === product.name);
+    const price = Number(product.price) || 0;
     if (existing) { existing.qty++; }
-    else { cart.push({ name: product.name, price: product.price, icon: product.icon, image: product.image || null, qty: 1 }); }
+    else { cart.push({ name: product.name, price, icon: product.icon, image: product.image || null, qty: 1 }); }
     updateCart();
     showToast(`${product.icon || '🛒'} ${product.name} ajouté !`);
   }
@@ -1588,9 +1605,11 @@ const db = firebase.firestore();
   function renderProducts() {
     const grid = document.querySelector('.products-grid');
     grid.innerHTML = adminData.products.map(product => {
-      const priceEUR = product.price || 0;
-      const priceFCFA = (priceEUR * adminData.exchangeRate).toFixed(0);
+      const priceEUR = Number(product.price) || 0;
+      const exchangeRate = Number(adminData.exchangeRate) || 1;
+      const priceFCFA = (priceEUR * exchangeRate).toFixed(0);
       const stars = '★'.repeat(Math.floor(product.rating || 5)) + '☆'.repeat(5 - Math.floor(product.rating || 5));
+      const desc = product.desc || '';
       
       return `
         <div class="product-card">
@@ -1602,7 +1621,7 @@ const db = firebase.firestore();
             <div class="product-cat">${adminData.categories.find(c => c.id == product.category)?.name || 'Produit'}</div>
             <div class="stars">★★★★★</div>
             <div class="product-name">${product.name}</div>
-            <div class="product-desc">${product.desc}</div>
+            <div class="product-desc">${desc}</div>
             <div class="product-bottom">
               <div class="product-price">${priceFCFA} FCFA</div>
               <button type="button" class="add-btn" onclick="addToCart('${product.id}')">+</button>

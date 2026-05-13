@@ -108,16 +108,19 @@
                 for (const product of productsToMigrate) {
                     const productData = {
                         name: product.name,
-                        price: product.price,
+                        price: Number(product.price) || 0,
                         category: product.category,
-                        icon: product.icon,
+                        icon: product.icon || '📦',
                         image: product.image || '',
-                        description: product.description || ''
+                        description: product.desc || product.description || '',
+                        rating: Number(product.rating) || 0,
+                        badge: product.badge || ''
                     };
 
-                    if (product.id && typeof product.id === 'string') {
+                    const productId = product.id != null ? String(product.id) : '';
+                    if (productId) {
                         // Utiliser l'ID existant
-                        await db.collection('products').doc(product.id).set(productData);
+                        await db.collection('products').doc(productId).set(productData);
                     } else {
                         // Générer un nouvel ID
                         const docRef = await db.collection('products').add(productData);
