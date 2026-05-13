@@ -9,11 +9,11 @@
   :root {
     --black: #ffffff;
     --white: #f5f2ec;
-    --cream: #dbd8f0;
+    --cream: #cac8dc;
     --accent: #0D47A1;
     --accent2: #1E88E5;
     --accent-light: #64B5F6;
-    --gray: #0d33f3;
+    --gray: #484a5a;
     --mid: #1E88E5;
   }
 
@@ -546,7 +546,7 @@ transition: background 0.2s, transform 0.15s;
 clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 100%, 0 100%);
 flex-shrink: 0;
 }
-.add-btn:hover { background: #e03d10; transform: scale(1.1); }
+.add-btn:hover { background: #202020; transform: scale(1.1); }
 
 /* STARS */
 .stars { color: var(--accent2); font-size: 0.75rem; margin-bottom: 10px; }
@@ -1520,93 +1520,58 @@ const db = firebase.firestore();
     exchangeRate: 655
   };
   
-  function loadAdminData() {
-    const saved = localStorage.getItem('techAccessData');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed && Array.isArray(parsed.products)) {
-          adminData = parsed;
-        }
-      } catch (e) {
-        console.error('Erreur sync données admin', e);
-      }
-    }
-    
-    // Load products from Firestore
-    loadProductsFromFirestore();
-  }
-  
-  async function loadProductsFromFirestore() {
+  async function loadAllDataFromFirestore() {
     try {
-      console.log('📥 Chargement des produits depuis Firestore...');
-      const querySnapshot = await db.collection('products').get();
-      const firestoreProducts = [];
-      querySnapshot.forEach(doc => {
-        const data = doc.data() || {};
-        firestoreProducts.push({
-          id: String(doc.id),
-          name: data.name || '',
-          price: Number(data.price) || 0,
-          category: data.category || '',
-          desc: data.desc || data.description || '',
-          icon: data.icon || '📦',
-          image: data.image || '',
-          rating: Number(data.rating) || 0,
-          badge: data.badge || ''
-        });
-      });
-      // Only update if we successfully got data from Firestore
-      if (firestoreProducts.length > 0 || querySnapshot.empty) {
-        adminData.products = firestoreProducts;
+      console.log('📥 Initialisation des données...');
+      
+      // 1. Charger les réglages (catégories, ticker, taux)
+      const settingsDoc = await db.collection('settings').doc('config').get();
+      if (settingsDoc.exists) {
+        const settings = settingsDoc.data();
+        adminData.categories = settings.categories || adminData.categories;
+        adminData.ticker = settings.ticker || adminData.ticker;
+        adminData.exchangeRate = settings.exchangeRate || 655;
       }
-      console.log('✅ Produits chargés depuis Firestore:', adminData.products.length);
-      localStorage.setItem('techAccessData', JSON.stringify(adminData));
+
+      // 2. Charger les produits
+      const productsSnap = await db.collection('products').get();
+      adminData.products = productsSnap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      console.log('✅ Données prêtes');
       initializePage();
+      
+      // 3. Activer le temps réel pour les futures mises à jour
+      syncFirestoreData();
+
     } catch (error) {
-      console.warn('⚠️ Firestore non disponible ou erreur permissions:', error);
-      console.log('💾 Conservation des données locales');
-      initializePage();
+      console.error('❌ Erreur critique chargement:', error);
+      // Fallback minimal pour ne pas bloquer l'affichage
+      renderProducts(); 
     }
   }
   
-  // Sync Firestore data in real-time
   function syncFirestoreData() {
-    try {
-      console.log('🔄 Activation synchronisation temps réel...');
-      db.collection('products').onSnapshot(snapshot => {
-        const firestoreProducts = [];
-        snapshot.forEach(doc => {
-          const data = doc.data() || {};
-          firestoreProducts.push({
-            id: String(doc.id),
-            name: data.name || '',
-            price: Number(data.price) || 0,
-            category: data.category || '',
-            desc: data.desc || data.description || '',
-            icon: data.icon || '📦',
-            image: data.image || '',
-            rating: Number(data.rating) || 0,
-            badge: data.badge || ''
-          });
-        });
-        // Only update if we got products from Firestore
-        if (firestoreProducts.length > 0 || snapshot.empty) {
-          adminData.products = firestoreProducts;
-        }
-        console.log('🔄 Données Firestore mises à jour:', adminData.products.length, 'produits');
-        localStorage.setItem('techAccessData', JSON.stringify(adminData));
-        renderProducts();
-      }, error => {
-        console.error('❌ Erreur synchronisation Firestore:', error);
-        console.log('⚠️ Message:', error.message);
-        if (error.code === 'permission-denied') {
-          console.log('🔐 Les règles Firestore ne permettent pas la lecture. Consulte FIRESTORE_RULES.md');
+      // Écouter les changements de réglages
+      db.collection('settings').doc('config').onSnapshot(doc => {
+        if (doc.exists) {
+          const data = doc.data();
+          adminData.categories = data.categories || adminData.categories;
+          adminData.ticker = data.ticker || adminData.ticker;
+          adminData.exchangeRate = data.exchangeRate || 655;
+          renderCategories();
+          updateTicker();
+          renderProducts();
         }
       });
-    } catch (error) {
-      console.warn('⚠️ Sync temps réel non disponible:', error);
-    }
+
+      // Écouter les changements de produits
+      db.collection('products').onSnapshot(snapshot => {
+        adminData.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderProducts();
+      });
   }
   
   function initializePage() {
@@ -1916,13 +1881,8 @@ const db = firebase.firestore();
     }
   });
   
-  // Init page
-  loadAdminData();
-  
-  // Start real-time sync with Firestore
-  setTimeout(() => {
-    syncFirestoreData();
-  }, 1000);
+  // Démarrage
+  loadAllDataFromFirestore();
 </script>
 
 </body>

@@ -883,99 +883,55 @@ const db = firebase.firestore();
   }
   
   // Data
-  function loadData() {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        currentData = JSON.parse(saved);
-      } catch (e) {
-        console.error('Erreur chargement données', e);
+  async function loadData() {
+    try {
+      // Charger la config globale
+      const settings = await db.collection('settings').doc('config').get();
+      if (settings.exists) {
+        const d = settings.data();
+        currentData.categories = d.categories || currentData.categories;
+        currentData.ticker = d.ticker || currentData.ticker;
+        currentData.exchangeRate = d.exchangeRate || 655;
       }
+
+      // Charger les produits
+      const productsSnap = await db.collection('products').get();
+      currentData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      if (isAuthenticated()) showAdmin();
+    } catch (error) {
+      console.error("Erreur de chargement Firebase:", error);
     }
-    // Load products from Firestore
-    loadProductsFromFirestore();
   }
   
-  async function loadProductsFromFirestore() {
+  async function saveData() {
+    // Sauvegarde de la configuration globale (Categories, Ticker, Rate)
     try {
-      console.log('📥 Chargement des produits depuis Firestore...');
-      const querySnapshot = await db.collection('products').get();
-      const firestoreProducts = [];
-      querySnapshot.forEach(doc => {
-        const data = doc.data() || {};
-        firestoreProducts.push({
-          id: String(doc.id),
-          name: data.name || '',
-          price: Number(data.price) || 0,
-          category: data.category || 'Autre',
-          desc: data.desc || data.description || '',
-          icon: data.icon || '📦',
-          image: data.image || '',
-          rating: Number(data.rating) || 0,
-          badge: data.badge || ''
-        });
+      await db.collection('settings').doc('config').set({
+        categories: currentData.categories,
+        ticker: currentData.ticker,
+        exchangeRate: currentData.exchangeRate
       });
-      // Only update if we successfully got data from Firestore
-      if (firestoreProducts.length > 0 || querySnapshot.empty) {
-        currentData.products = firestoreProducts;
-      }
-      console.log('✅ Produits chargés depuis Firestore:', currentData.products.length);
-      updateDashboard();
-      renderProducts();
-    } catch (error) {
-      console.warn('⚠️ Firestore erreur chargement:', error);
-      console.log('💾 Conservation des données locales (produits non synchronisés)');
-      if (error.code === 'permission-denied') {
-        console.log('🔐 Les règles Firestore ne permettent pas la lecture. Consulte FIRESTORE_RULES.md');
-      }
-      // Don't clear products - keep localStorage data
-      updateDashboard();
-      renderProducts();
+      showToast('✅ Configuration synchronisée cloud', 'success');
+    } catch (e) {
+      showToast('❌ Erreur sync config', 'error');
     }
-  }
-  
-  function saveData() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(currentData));
     syncWithFirestore();
-    syncWithMain();
   }
   
-  async function syncWithFirestore() {
-    try {
-      console.log('📤 Synchronisation vers Firestore...');
-      // Sync products to Firestore
-      for (const product of currentData.products) {
-        const productId = product.id != null ? String(product.id) : '';
-        if (!productId) continue;
-        if (!product.name || !Number.isFinite(Number(product.price))) {
-          console.warn('Produit non synchronisé car incomplet:', product);
-          continue;
-        }
-        await db.collection('products').doc(productId).set({
-          name: product.name,
-          price: Number(product.price),
-          category: product.category || 'Autre',
-          icon: product.icon || '📦',
-          image: product.image || '',
-          description: product.desc || product.description || ''
-        }, { merge: true });
-      }
-      console.log('✅ Données synchronisées avec Firestore (', currentData.products.length, ' produits)');
-    } catch (error) {
-      console.error('❌ Erreur sync Firestore:', error);
-      console.log('⚠️ Message:', error.message);
-      if (error.code === 'permission-denied') {
-        console.log('🔐 Les règles Firestore ne permettent pas l\'écriture. Consulte FIRESTORE_RULES.md');
-        showToast('⚠️ Sync Firestore bloquée - données sauvegardées localement uniquement', 'error');
-      } else {
-        showToast('⚠️ Erreur de synchronisation - vérifiez votre connexion', 'error');
-      }
+  async function deleteProduct(id) {
+    if (confirm('Supprimer définitivement ce produit du cloud ?')) {
+      await db.collection('products').doc(String(id)).delete();
+      currentData.products = currentData.products.filter(p => String(p.id) !== String(id));
+      renderProducts();
+      updateDashboard();
+      showToast('🗑️ Produit supprimé du cloud');
     }
   }
-  
-  function syncWithMain() {
-    // Envoyer les données à la page principale
-    localStorage.setItem('techAccessDataSync', JSON.stringify(currentData));
+
+  async function syncWithFirestore() {
+    // Cette fonction est maintenant appelée après chaque modification de produit
+    // Les produits sont déjà gérés individuellement dans saveProduct
   }
   
   // Dashboard
