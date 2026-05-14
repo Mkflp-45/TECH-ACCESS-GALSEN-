@@ -504,7 +504,7 @@ margin-bottom: 6px;
 font-family: "Bebas Neue", sans-serif;
 font-size: 1.3rem;
 letter-spacing: 1px;
-color: var(--white);
+color: var(--accent);
 margin-bottom: 4px;
 }
 
@@ -523,7 +523,7 @@ display: flex; justify-content: space-between; align-items: center;
 font-family: "Space Mono", monospace;
 font-size: 1.1rem;
 font-weight: 700;
-color: var(--white);
+color: var(--accent);
 }
 
 .product-price .old {
@@ -1712,8 +1712,8 @@ const db = firebase.firestore();
 
   function openCustomerModal(total) {
     // Afficher le montant dans le modal
-    const totalFormatted = (total).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    document.getElementById('modalOrderTotal').textContent = totalFormatted + '€';
+    const totalFormatted = Math.round(total).toLocaleString('fr-FR');
+    document.getElementById('modalOrderTotal').textContent = totalFormatted + ' FCFA';
     
     // Afficher le modal
     document.getElementById('customerModalOverlay').classList.add('show');
@@ -1725,7 +1725,7 @@ const db = firebase.firestore();
     document.getElementById('customerForm').reset();
   }
 
-  function submitCustomerForm(event) {
+  async function submitCustomerForm(event) {
     event.preventDefault();
 
     const name = document.getElementById('customerName').value.trim();
@@ -1739,25 +1739,44 @@ const db = firebase.firestore();
       return;
     }
 
-    // Stocker les informations client dans localStorage
-    const customerInfo = {
-      name: name,
-      firstName: firstName,
-      whatsapp: whatsapp,
-      quartier: quartier,
+    const btn = event.submitter;
+    if (btn) btn.disabled = true;
+    showToast('⌛ Traitement de la commande...');
+
+    const orderData = {
+      customer: {
+        name,
+        firstName,
+        whatsapp,
+        quartier
+      },
+      items: cart.map(item => ({
+        name: item.name,
+        price: Math.round(item.price * adminData.exchangeRate),
+        qty: item.qty
+      })),
       total: total,
-      cart: cart,
-      timestamp: new Date().toISOString()
+      status: 'En attente',
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
-    
-    localStorage.setItem('lastCustomerOrder', JSON.stringify(customerInfo));
 
-    // Fermer le modal
-    closeCustomerModal();
-
-    // Rediriger vers Wave
-    showToast('✅ Redirection vers Wave');
-    window.location.href = wavePaymentLink;
+    try {
+      const docRef = await db.collection('orders').add(orderData);
+      const orderId = docRef.id;
+      
+      showToast('✅ Commande enregistrée !');
+      
+      // Fermer le modal et ouvrir la facture
+      closeCustomerModal();
+      window.open(`invoice.html?id=${orderId}`, '_blank');
+      
+      // Rediriger vers Wave
+      setTimeout(() => { window.location.href = wavePaymentLink; }, 1500);
+    } catch (error) {
+      console.error("Erreur commande:", error);
+      showToast('❌ Erreur lors de l\'enregistrement');
+      if (btn) btn.disabled = false;
+    }
   }
 
   let toastTimer;

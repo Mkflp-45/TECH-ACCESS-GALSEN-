@@ -30,6 +30,12 @@ service cloud.firestore {
       allow read: if true;
       allow write: if true;
     }
+
+    // Autoriser les commandes
+    match /orders/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
   }
 }
 ```

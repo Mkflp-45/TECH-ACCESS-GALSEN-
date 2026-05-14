@@ -593,6 +593,7 @@ const db = firebase.firestore();
         <button class="sidebar-btn active" onclick="switchPanel('dashboard', this)">📊 Tableau de bord</button>
         <button class="sidebar-btn" onclick="switchPanel('products', this)">📦 Produits</button>
         <button class="sidebar-btn" onclick="switchPanel('categories', this)">🏷️ Catégories</button>
+        <button class="sidebar-btn" onclick="switchPanel('sales', this)">💰 Ventes</button>
         <button class="sidebar-btn" onclick="switchPanel('ticker', this)">📢 Ticker</button>
       </div>
       <div class="sidebar-section">
@@ -627,16 +628,26 @@ const db = firebase.firestore();
       <div class="panel" id="products">
         <div class="section-title">GESTION DES PRODUITS</div>
         
-        <button class="btn-primary" onclick="openProductModal()">➕ Ajouter un produit</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px; flex-wrap: wrap;">
+          <button class="btn-primary" onclick="openProductModal()">➕ Ajouter un produit</button>
+          
+          <div style="display: flex; gap: 10px; flex: 1; min-width: 300px;">
+            <input type="text" id="productSearch" placeholder="🔍 Rechercher par nom..." oninput="filterProducts()" style="margin-bottom: 0; flex: 2;">
+            <select id="filterCategory" onchange="filterProducts()" style="margin-bottom: 0; flex: 1;">
+              <option value="">Toutes les catégories</option>
+            </select>
+          </div>
+          <button class="btn-danger" id="bulkDeleteBtn" onclick="bulkDelete()" style="display: none;">🗑️ Supprimer la sélection (<span id="selectedCount">0</span>)</button>
+        </div>
         
-        <div class="table-container" style="margin-top: 30px;">
+        <div class="table-container">
           <table>
             <thead>
               <tr>
-                <th>🖼️</th>
+                <th><input type="checkbox" id="selectAll" onclick="toggleSelectAll()"></th>
+                <th>Image</th>
                 <th>Nom</th>
                 <th>Catégorie</th>
-                <th>Prix EUR</th>
                 <th>Prix FCFA</th>
                 <th>Actions</th>
               </tr>
@@ -647,6 +658,35 @@ const db = firebase.firestore();
         </div>
       </div>
       
+      <!-- SALES -->
+      <div class="panel" id="sales">
+        <div class="section-title">SUIVI DES VENTES</div>
+        
+        <div style="display: flex; gap: 15px; margin-bottom: 25px; align-items: center;">
+          <span class="sidebar-label" style="margin: 0;">Filtrer :</span>
+          <button class="btn-secondary" style="padding: 8px 16px; font-size: 0.7rem;" onclick="loadOrders('all')">Tout</button>
+          <button class="btn-secondary" style="padding: 8px 16px; font-size: 0.7rem;" onclick="loadOrders('day')">Aujourd'hui</button>
+          <button class="btn-secondary" style="padding: 8px 16px; font-size: 0.7rem;" onclick="loadOrders('week')">Cette semaine</button>
+          <button class="btn-secondary" style="padding: 8px 16px; font-size: 0.7rem;" onclick="loadOrders('month')">Ce mois</button>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Date / ID</th>
+                <th>Client / Quartier</th>
+                <th>Articles</th>
+                <th>Total (FCFA)</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="salesTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- CATEGORIES -->
       <div class="panel" id="categories">
         <div class="section-title">GESTION DES CATÉGORIES</div>
@@ -755,8 +795,8 @@ const db = firebase.firestore();
         <select id="productCategory"></select>
       </div>
       <div class="form-group">
-        <label>Prix (EUR)</label>
-        <input type="number" id="productPrice" step="0.01" placeholder="59.99">
+        <label>Prix (FCFA)</label>
+        <input type="number" id="productPrice" placeholder="40000">
       </div>
     </div>
     
@@ -880,6 +920,27 @@ const db = firebase.firestore();
     renderCategories();
     renderTicker();
     loadCategorySelect();
+    updateFilterCategories();
+  }
+
+  // Product Filtering Logic
+  function filterProducts() {
+    const searchTerm = document.getElementById('productSearch').value.toLowerCase();
+    const categoryFilter = document.getElementById('filterCategory').value;
+    
+    const filtered = currentData.products.filter(p => {
+      const matchesSearch = p.name.toLowerCase().includes(searchTerm);
+      const matchesCategory = !categoryFilter || String(p.category) === String(categoryFilter);
+      return matchesSearch && matchesCategory;
+    });
+    
+    renderProducts(filtered);
+  }
+
+  function updateFilterCategories() {
+    const filterSelect = document.getElementById('filterCategory');
+    const options = currentData.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    filterSelect.innerHTML = '<option value="">Toutes les catégories</option>' + options;
   }
   
   // Data
@@ -950,6 +1011,7 @@ const db = firebase.firestore();
     if (button) {
       button.classList.add('active');
     }
+    if (panel === 'sales') loadOrders();
   }
   
   // PRODUCTS
@@ -957,9 +1019,11 @@ const db = firebase.firestore();
     currentEditId = id;
     if (id) {
       const product = currentData.products.find(p => p.id === id);
+      const exchangeRate = currentData.exchangeRate || 655;
       document.getElementById('productModalTitle').textContent = 'Modifier le produit';
       document.getElementById('productName').value = product.name;
-      document.getElementById('productPrice').value = product.price;
+      // On affiche le prix en FCFA dans l'input
+      document.getElementById('productPrice').value = Math.round(product.price * exchangeRate);
       document.getElementById('productDesc').value = product.desc;
       document.getElementById('productCategory').value = product.category;
       document.getElementById('productRating').value = product.rating || 5;
@@ -1001,13 +1065,14 @@ const db = firebase.firestore();
   
   function saveProduct() {
     const name = document.getElementById('productName').value.trim();
-    const price = parseFloat(document.getElementById('productPrice').value);
+    const priceFCFA = parseFloat(document.getElementById('productPrice').value);
+    const exchangeRate = currentData.exchangeRate || 655;
     const category = document.getElementById('productCategory').value;
     const desc = document.getElementById('productDesc').value.trim();
     const rating = parseFloat(document.getElementById('productRating').value);
     const badge = document.getElementById('productBadge').value.trim();
     
-    if (!name || !Number.isFinite(price) || !category || !desc) {
+    if (!name || isNaN(priceFCFA) || !category || !desc) {
       showToast('❌ Remplissez tous les champs obligatoires', 'error');
       return;
     }
@@ -1018,24 +1083,45 @@ const db = firebase.firestore();
       imageData = imagePreview.querySelector('img').src;
     }
     
+    // On reconvertit en prix de base (EUR) pour le stockage
+    const priceBase = priceFCFA / exchangeRate;
+    
+    const productData = {
+      name: name,
+      price: priceBase,
+      category: category,
+      desc: desc,
+      rating: rating,
+      badge: badge,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    if (imageData) productData.image = imageData;
+
+    const btn = event ? event.target : null;
+    if(btn) btn.disabled = true;
+
     if (currentEditId) {
       const product = currentData.products.find(p => String(p.id) === String(currentEditId));
       if (product) {
         product.name = name;
-        product.price = price;
+        product.price = priceBase;
         product.category = category;
         product.desc = desc;
         product.rating = rating;
         product.badge = badge;
         if (imageData) product.image = imageData;
       }
+      db.collection('products').doc(String(currentEditId)).update(productData)
+        .then(() => { finishSave(); })
+        .catch(err => { showToast('❌ Erreur: ' + err.message, 'error'); });
     } else {
       const ids = currentData.products.map(p => Number(p.id)).filter(Number.isFinite);
       const newId = ids.length ? Math.max(...ids) + 1 : 1;
       currentData.products.push({
         id: String(newId),
         name,
-        price,
+        price: priceBase,
         category,
         desc,
         rating,
@@ -1043,12 +1129,16 @@ const db = firebase.firestore();
         icon: '📦',
         image: imageData
       });
+      db.collection('products').add(productData)
+        .then(() => { finishSave(); })
+        .catch(err => { showToast('❌ Erreur: ' + err.message, 'error'); });
     }
-    
-    saveData();
-    renderProducts();
+  }
+
+  function finishSave() {
+    loadData(); // Recharger depuis le cloud
     closeProductModal();
-    showToast('✅ Produit enregistré!', 'success');
+    showToast('✅ Produit enregistré dans le cloud !', 'success');
   }
   
   function deleteProduct(id) {
@@ -1060,17 +1150,49 @@ const db = firebase.firestore();
     }
   }
   
-  function renderProducts() {
+  // Selection Logic
+  let selectedProductIds = new Set();
+
+  function toggleSelectAll() {
+    const isChecked = document.getElementById('selectAll').checked;
+    const checkboxes = document.querySelectorAll('.product-checkbox');
+    selectedProductIds.clear();
+    checkboxes.forEach(cb => {
+      cb.checked = isChecked;
+      if (isChecked) selectedProductIds.add(cb.dataset.id);
+    });
+    updateBulkActionsUI();
+  }
+
+  function toggleProductSelection(id) {
+    if (selectedProductIds.has(id)) selectedProductIds.delete(id);
+    else selectedProductIds.add(id);
+    updateBulkActionsUI();
+  }
+
+  function updateBulkActionsUI() {
+    const btn = document.getElementById('bulkDeleteBtn');
+    const count = document.getElementById('selectedCount');
+    if (selectedProductIds.size > 0) {
+      btn.style.display = 'block';
+      count.textContent = selectedProductIds.size;
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+
+  function renderProducts(productsToRender = null) {
     const tbody = document.getElementById('productsTableBody');
-    tbody.innerHTML = currentData.products.map(p => {
+    const products = productsToRender || currentData.products;
+    tbody.innerHTML = products.map(p => {
       const price = Number(p.price) || 0;
       const exchangeRate = Number(currentData.exchangeRate) || 1;
       return `
-      <tr>
+      <tr class="${selectedProductIds.has(p.id) ? 'selected-row' : ''}">
+        <td><input type="checkbox" class="product-checkbox" data-id="${p.id}" ${selectedProductIds.has(p.id) ? 'checked' : ''} onclick="toggleProductSelection('${p.id}')"></td>
         <td style="font-size: 1.5rem;">${p.image ? `<img src="${p.image}" style="width: 40px; height: 40px; border-radius: 4px;">` : p.icon || '📦'}</td>
         <td>${p.name || '—'}</td>
         <td>${p.category || 'Autre'}</td>
-        <td>${price.toFixed(2)}€</td>
         <td>${(price * exchangeRate).toFixed(0)} FCFA</td>
         <td>
           <div class="action-buttons">
@@ -1081,6 +1203,23 @@ const db = firebase.firestore();
       </tr>
     `;
     }).join('');
+  }
+
+  async function bulkDelete() {
+    if (!confirm(`Supprimer définitivement ces ${selectedProductIds.size} produits ?`)) return;
+    
+    const loader = showToast('🗑️ Suppression groupée en cours...', 'info');
+    try {
+      const promises = Array.from(selectedProductIds).map(id => db.collection('products').doc(id).delete());
+      await Promise.all(promises);
+      selectedProductIds.clear();
+      document.getElementById('selectAll').checked = false;
+      updateBulkActionsUI();
+      await loadData();
+      showToast('✅ Produits supprimés avec succès', 'success');
+    } catch (e) {
+      showToast('❌ Erreur lors de la suppression groupée', 'error');
+    }
   }
   
   // CATEGORIES
@@ -1189,9 +1328,74 @@ const db = firebase.firestore();
         <td>${msg}</td>
         <td>
           <button class="btn-delete" onclick="deleteTicker(${idx})">🗑️ Supprimer</button>
+          <div class="action-buttons">
+            <button class="btn-edit" onclick="editTicker(${idx})">✏️ Éditer</button>
+            <button class="btn-delete" onclick="deleteTicker(${idx})">🗑️ Supprimer</button>
+          </div>
         </td>
       </tr>
     `).join('');
+  }
+
+  // SALES LOGIC
+  async function loadOrders(filter = 'all') {
+    const tbody = document.getElementById('salesTableBody');
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Chargement...</td></tr>';
+    try {
+      let query = db.collection('orders').orderBy('timestamp', 'desc');
+      if (filter !== 'all') {
+        const now = new Date();
+        let start = new Date();
+        if (filter === 'day') start.setHours(0,0,0,0);
+        else if (filter === 'week') start.setDate(now.getDate() - 7);
+        else if (filter === 'month') start.setMonth(now.getMonth() - 1);
+        query = query.where('timestamp', '>=', start);
+      }
+      const snapshot = await query.get();
+      const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      tbody.innerHTML = orders.map(order => {
+        const date = order.timestamp ? order.timestamp.toDate().toLocaleDateString('fr-FR') : '—';
+        return `
+          <tr>
+            <td><div style="font-size: 0.75rem;">${date}</div><div style="font-size: 0.6rem; color: var(--mid)">ID: ${order.id.substring(0,8)}</div></td>
+            <td><div style="font-weight:700">${order.customer.firstName} ${order.customer.name}</div><div style="font-size: 0.7rem;">📍 ${order.customer.quartier}</div></td>
+            <td style="font-size: 0.75rem;">${order.items.map(i => `${i.qty}x ${i.name}`).join('<br>')}</td>
+            <td style="font-weight:700; color:var(--accent2)">${order.total.toLocaleString()} FCFA</td>
+            <td>
+              <select onchange="updateOrderStatus('${order.id}', this.value)" style="padding:4px; background:var(--black); color:white; border:1px solid var(--mid);">
+                <option value="En attente" ${order.status === 'En attente' ? 'selected' : ''}>⏳ Attente</option>
+                <option value="Payé" ${order.status === 'Payé' ? 'selected' : ''}>✅ Payé</option>
+                <option value="Annulé" ${order.status === 'Annulé' ? 'selected' : ''}>❌ Annulé</option>
+              </select>
+            </td>
+            <td><div class="action-buttons">
+              <button class="btn-edit" onclick="window.open('invoice.html?id=${order.id}', '_blank')">📄 Facture</button>
+              <button class="btn-delete" onclick="deleteOrder('${order.id}')">🗑️</button>
+            </div></td>
+          </tr>`;
+      }).join('');
+    } catch (e) { console.error(e); }
+  }
+
+  async function updateOrderStatus(id, status) {
+    try { await db.collection('orders').doc(id).update({ status }); showToast('✅ Statut mis à jour'); } catch (e) { showToast('❌ Erreur', 'error'); }
+  }
+
+  async function deleteOrder(id) {
+    if (!confirm('Supprimer cette commande ?')) return;
+    try { await db.collection('orders').doc(id).delete(); loadOrders(); showToast('✅ Supprimé'); } catch (e) { showToast('❌ Erreur', 'error'); }
+  }
+
+  function editTicker(idx) {
+    const currentMsg = currentData.ticker[idx];
+    const newMsg = prompt("Modifier le message du ticker :", currentMsg);
+    
+    if (newMsg !== null && newMsg.trim() !== "") {
+      currentData.ticker[idx] = newMsg.trim();
+      saveData();
+      renderTicker();
+      showToast('✅ Message mis à jour !', 'success');
+    }
   }
   
   function deleteTicker(idx) {
