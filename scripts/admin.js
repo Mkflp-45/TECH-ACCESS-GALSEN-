@@ -317,16 +317,40 @@ async function bulkDelete() {
 
 function openCategoryModal(id = null) {
   currentEditId = id;
+  const imageInput = document.getElementById('categoryImageFile');
+  const imagePreview = document.getElementById('categoryImagePreview');
+  const imageImg = document.getElementById('categoryImageImg');
+  
   if (id) {
     const cat = currentData.categories.find(c => String(c.id).trim() === String(id).trim());
     document.getElementById('categoryModalTitle').textContent = 'Modifier la catégorie';
     document.getElementById('categoryName').value = cat.name;
-    document.getElementById('categoryIcon').value = cat.icon;
+    imageInput.value = '';
+    if (cat.backgroundImage) {
+      imageImg.src = cat.backgroundImage;
+      imagePreview.style.display = 'block';
+    } else {
+      imagePreview.style.display = 'none';
+    }
   } else {
     document.getElementById('categoryModalTitle').textContent = 'Ajouter une catégorie';
     document.getElementById('categoryName').value = '';
-    document.getElementById('categoryIcon').value = '';
+    imageInput.value = '';
+    imagePreview.style.display = 'none';
   }
+  
+  imageInput.onchange = function(e) {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        imageImg.src = event.target.result;
+        imagePreview.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
   document.getElementById('categoryModal').classList.add('active');
 }
 
@@ -337,18 +361,41 @@ function closeCategoryModal() {
 
 function saveCategory() {
   const name = document.getElementById('categoryName').value.trim();
-  const icon = document.getElementById('categoryIcon').value.trim();
-  if (!name || !icon) {
-    showToast('❌ Remplissez tous les champs', 'error');
+  const imageInput = document.getElementById('categoryImageFile');
+  const imagePreview = document.getElementById('categoryImagePreview');
+  
+  if (!name) {
+    showToast('❌ Remplissez le nom de la catégorie', 'error');
     return;
   }
+  
+  const currentImage = imagePreview.style.display !== 'none' ? document.getElementById('categoryImageImg').src : null;
+  if (!imageInput.files.length && !currentImage) {
+    showToast('❌ Ajouter une image de fond', 'error');
+    return;
+  }
+  
+  if (imageInput.files.length > 0) {
+    const file = imageInput.files[0];
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      const backgroundImage = event.target.result;
+      saveOrUpdateCategory(name, backgroundImage);
+    };
+    reader.readAsDataURL(file);
+  } else if (currentImage) {
+    saveOrUpdateCategory(name, currentImage);
+  }
+}
+
+function saveOrUpdateCategory(name, backgroundImage) {
   if (currentEditId) {
     const cat = currentData.categories.find(c => String(c.id).trim() === String(currentEditId).trim());
     cat.name = name;
-    cat.icon = icon;
+    cat.backgroundImage = backgroundImage;
   } else {
     const newId = Math.max(...currentData.categories.map(c => Number(c.id) || 0), 0) + 1;
-    currentData.categories.push({ id: newId, name, icon });
+    currentData.categories.push({ id: newId, name, backgroundImage });
   }
   saveData();
   renderCategories();
@@ -371,9 +418,10 @@ function renderCategories() {
   const tbody = document.getElementById('categoriesTableBody');
   tbody.innerHTML = currentData.categories.map(c => {
     const count = currentData.products.filter(p => String(p.category) === String(c.id)).length;
+    const imgPreview = c.backgroundImage ? `<img src="${c.backgroundImage}" alt="${c.name}" style="width: 50px; height: 50px; border-radius: 4px; object-fit: cover;">` : '<span style="font-size: 1.5rem;">🖼️</span>';
     return `
       <tr>
-        <td style="font-size: 1.5rem;">${c.icon}</td>
+        <td>${imgPreview}</td>
         <td>${c.name}</td>
         <td>${count}</td>
         <td>
@@ -388,7 +436,7 @@ function renderCategories() {
 
 function loadCategorySelect() {
   const select = document.getElementById('productCategory');
-  select.innerHTML = '<option value="">-- Sélectionner --</option>' + currentData.categories.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
+  select.innerHTML = '<option value="">-- Sélectionner --</option>' + currentData.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
 }
 
 function updateTicker() {

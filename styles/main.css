@@ -448,51 +448,49 @@ section { padding: 100px 40px; }
   border: 1px solid rgba(255,255,255,0.08);
   padding: 40px 30px;
   cursor: pointer;
-  transition: background 0.25s, transform 0.25s, border-color 0.25s;
+  transition: background 0.25s, transform 0.25s, border-color 0.25s, filter 0.25s;
   position: relative;
   overflow: hidden;
   text-decoration: none;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 280px;
   flex-shrink: 0;
   border-radius: 24px;
+  min-height: 200px;
+  background-size: cover !important;
+  background-position: center !important;
 }
-
-.cat-card:hover {
-  background: rgba(255,255,255,0.08);
-  transform: translateY(-4px);
-  border-color: rgba(255,255,255,0.18);
-}
-
-.category-section { position: relative; }
-
-.category-section .nav-arrow {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 42px;
-  height: 42px;
-  opacity: 0.9;
-}
-
-.category-section .nav-arrow.prev { left: -18px; }
-.category-section .nav-arrow.next { right: -18px; }
-.category-section .nav-arrow:hover { opacity: 1; }
 
 .cat-card::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: var(--accent);
-  transform: scaleY(0);
-  transform-origin: bottom;
-  transition: transform 0.3s ease;
-  z-index: 0;
+  background: rgba(0, 0, 0, 0.4);
+  transition: background 0.3s ease;
+  z-index: 1;
 }
-.cat-card:hover::before { transform: scaleY(1); }
-.cat-card:hover .cat-icon,
-.cat-card:hover .cat-name,
-.cat-card:hover .cat-count { color: var(--white); }
+
+.cat-card:hover::before {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.cat-overlay {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.cat-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255,255,255,0.18);
+  filter: brightness(1.1);
+}
 
 .cat-icon {
   font-size: 2.5rem;
@@ -508,14 +506,17 @@ section { padding: 100px 40px; }
   color: var(--white);
   display: block;
   margin-bottom: 6px;
-  position: relative; z-index: 1;
+  position: relative;
+  z-index: 2;
   transition: color 0.2s;
 }
+
 .cat-count {
   font-family: "Space Mono", monospace;
   font-size: 0.65rem;
-  color: var(--mid);
-  position: relative; z-index: 1;
+  color: var(--accent-light);
+  position: relative;
+  z-index: 2;
   transition: color 0.2s;
   letter-spacing: 1px;
 }

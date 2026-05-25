@@ -7,10 +7,10 @@ const isMobile = () => window.innerWidth <= 768;
 let adminData = {
   products: [],
   categories: [
-    { id: 1, name: 'Powerbanks', icon: '🔋' },
-    { id: 2, name: 'Coques', icon: '🛡️' },
-    { id: 3, name: 'Câbles & Chargeurs', icon: '🔌' },
-    { id: 4, name: 'Audio', icon: '🎧' }
+    { id: 1, name: 'Powerbanks', backgroundImage: 'https://via.placeholder.com/200?text=Powerbanks' },
+    { id: 2, name: 'Coques', backgroundImage: 'https://via.placeholder.com/200?text=Coques' },
+    { id: 3, name: 'Câbles & Chargeurs', backgroundImage: 'https://via.placeholder.com/200?text=Câbles' },
+    { id: 4, name: 'Audio', backgroundImage: 'https://via.placeholder.com/200?text=Audio' }
   ],
   ticker: ['LIVRAISON GRATUITE dès 50€', 'ACCESSOIRES PREMIUM', 'TECH ACCESSIBLE A TOUS', 'GARANTIE 2 ANS', 'DAKAR PLATEAU', 'SUPPORT 7J/7'],
   exchangeRate: 655,
@@ -341,13 +341,15 @@ function renderCategories() {
     const normalizedCat = cat && typeof cat === 'object' ? cat : { id: cat, name: String(cat) };
     const catId = normalizedCat.id || normalizedCat.name || 'unknown';
     const catName = normalizedCat.name || normalizedCat.title || normalizedCat.label || String(catId);
-    const catIcon = normalizedCat.icon || normalizedCat.icone || '📦';
+    const backgroundImage = normalizedCat.backgroundImage || 'https://via.placeholder.com/200?text=' + encodeURIComponent(catName);
     const count = adminData.products.filter(p => p.category != null && String(p.category).trim() === String(catId).trim()).length;
+    const bgStyle = `background-image: url('${backgroundImage}'); background-size: cover; background-position: center;`;
     return `
-      <a class="cat-card" href="#produits">
-        <span class="cat-icon">${catIcon}</span>
-        <span class="cat-name">${catName}</span>
-        <span class="cat-count">${count} produits</span>
+      <a class="cat-card" href="#produits" style="${bgStyle}">
+        <div class="cat-overlay">
+          <span class="cat-name">${catName}</span>
+          <span class="cat-count">${count} produits</span>
+        </div>
       </a>
     `;
   }).join('');
