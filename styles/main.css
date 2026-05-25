@@ -423,9 +423,7 @@ section { padding: 100px 40px; }
 .categories-grid:active { cursor: grabbing; }
 
 .nav-arrow {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  position: relative;
   background: var(--accent);
   color: white;
   border: none;
@@ -439,11 +437,12 @@ section { padding: 100px 40px; }
   justify-content: center;
   transition: background 0.2s, opacity 0.2s;
   box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  flex-shrink: 0;
 }
 
 .nav-arrow:hover { background: var(--accent2); }
-.nav-arrow.prev { left: -22px; }
-.nav-arrow.next { right: -22px; }
+.nav-arrow.prev { order: -1; }
+.nav-arrow.next { order: 1; }
 
 .cat-card {
   background: rgba(255,255,255,0.04);
@@ -532,6 +531,13 @@ section { padding: 100px 40px; }
   margin-bottom: 60px;
 }
 
+.carousel-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
 .category-header {
   display: flex;
   align-items: center;
@@ -557,7 +563,8 @@ section { padding: 100px 40px; }
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
   cursor: grab;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
 }
 
 .products-carousel:active { cursor: grabbing; }

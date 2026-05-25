@@ -510,10 +510,12 @@ function renderProducts() {
       }).join('');
 
       section.innerHTML = `
-        <div class="category-header"><h3>${cat.icon} ${cat.name}</h3></div>
-        <button class="nav-arrow prev" onclick="moveProductCarousel(this, -1)">‹</button>
-        <button class="nav-arrow next" onclick="moveProductCarousel(this, 1)">›</button>
-        <div class="products-carousel">${productHTML}</div>
+        <div class="category-header"><h3>${cat.name}</h3></div>
+        <div class="carousel-wrapper">
+          <button class="nav-arrow prev" onclick="moveProductCarousel(this, -1)">‹</button>
+          <div class="products-carousel">${productHTML}</div>
+          <button class="nav-arrow next" onclick="moveProductCarousel(this, 1)">›</button>
+        </div>
       `;
       container.appendChild(section);
       initializeAutoTicker(section.querySelector('.products-carousel'), 0.7);
