@@ -19,22 +19,24 @@ Pour que l’application puisse lire et écrire les produits sans authentificati
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Autoriser les produits
-    match /products/{document=**} {
-      allow read: if true;
-      allow write: if true;
-    }
-    
-    // Autoriser la configuration (NOUVEAU)
-    match /settings/{document=**} {
-      allow read: if true;
-      allow write: if true;
+    // Fonction de sécurité pour vérifier si l'utilisateur est l'admin
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == "VOTRE_EMAIL_ADMIN@GMAIL.COM";
     }
 
-    // Autoriser les commandes
-    match /orders/{document=**} {
+    match /products/{document=**} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /settings/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /orders/{document=**} {
+      allow create: if true; // Autorise les clients à envoyer une commande
+      allow read, update, delete: if isAdmin(); // Seul l'admin peut voir et gérer les commandes
     }
   }
 }

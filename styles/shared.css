@@ -1,0 +1,24 @@
+/* Styles partagés entre toutes les pages */
+:root {
+  --bg: #fff;
+  --text: #212121;
+  --primary: #0066cc;
+  --accent: #ff8c00;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+button,
+a {
+  cursor: pointer;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
