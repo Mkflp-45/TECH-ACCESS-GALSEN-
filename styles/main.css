@@ -403,6 +403,7 @@ section { padding: 100px 40px; }
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
+  scroll-behavior: auto;
   padding: 24px 0 12px;
   flex: 1;
   min-width: 0;
@@ -432,7 +433,7 @@ section { padding: 100px 40px; }
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  z-index: 20;
+  z-index: 200;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -557,6 +558,7 @@ section { padding: 100px 40px; }
   display: flex;
   gap: 20px;
   overflow-x: auto;
+  scroll-behavior: auto;
   padding: 10px 5px 30px 5px;
   scrollbar-width: none;
   -ms-overflow-style: none;

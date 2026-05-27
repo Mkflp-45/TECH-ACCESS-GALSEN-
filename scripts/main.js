@@ -91,7 +91,7 @@ async function loadAllDataFromFirestore() {
     syncFirestoreData();
   } catch (error) {
     console.error('❌ Erreur critique chargement:', error);
-    renderProducts();
+    initializePage();
   }
 }
 
@@ -330,6 +330,44 @@ function subscribe() {
   }
 }
 
+function normalizeCategorySlug(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-_]/g, '') || 'categorie';
+}
+
+function scrollToCategory(categorySlug) {
+  if (!categorySlug) return;
+  const target = document.getElementById(`category-${categorySlug}`);
+  if (!target) return;
+  const header = document.querySelector('nav');
+  const headerOffset = (header ? header.offsetHeight : 0) + 16;
+  const targetTop = target.getBoundingClientRect().top + window.pageYOffset - headerOffset;
+  window.scrollTo({ top: targetTop, behavior: 'smooth' });
+}
+
+function smoothHorizontalScroll(container, delta, duration = 360) {
+  if (!container || !delta) return;
+  const startX = container.scrollLeft;
+  const maxScroll = container.scrollWidth - container.clientWidth;
+  const targetX = Math.max(0, Math.min(startX + delta, maxScroll));
+  if (targetX === startX) return;
+
+  const startTime = performance.now();
+  const distance = targetX - startX;
+  const ease = t => 1 - Math.pow(1 - t, 3);
+
+  function step(now) {
+    const elapsed = Math.min(1, (now - startTime) / duration);
+    container.scrollLeft = startX + distance * ease(elapsed);
+    if (elapsed < 1) requestAnimationFrame(step);
+  }
+
+  requestAnimationFrame(step);
+}
+
 function renderCategories() {
   const container = document.getElementById('categoriesContainer');
   if (!container) {
@@ -341,11 +379,12 @@ function renderCategories() {
     const normalizedCat = cat && typeof cat === 'object' ? cat : { id: cat, name: String(cat) };
     const catId = normalizedCat.id || normalizedCat.name || 'unknown';
     const catName = normalizedCat.name || normalizedCat.title || normalizedCat.label || String(catId);
+    const categorySlug = normalizeCategorySlug(catId);
     const backgroundImage = normalizedCat.backgroundImage || 'https://via.placeholder.com/200?text=' + encodeURIComponent(catName);
     const count = adminData.products.filter(p => p.category != null && String(p.category).trim() === String(catId).trim()).length;
     const bgStyle = `background-image: url('${backgroundImage}'); background-size: cover; background-position: center;`;
     return `
-      <a class="cat-card" href="#produits" style="${bgStyle}">
+      <a class="cat-card" href="#category-${categorySlug}" onclick="scrollToCategory('${categorySlug}'); return false;" style="${bgStyle}">
         <div class="cat-overlay">
           <span class="cat-name">${catName}</span>
           <span class="cat-count">${count} produits</span>
@@ -359,13 +398,11 @@ function renderCategories() {
   initializeAutoTicker(container, 0.85);
 }
 
-function initializeAutoTicker(container, speed = 0.8) {
+function initializeAutoTicker(container) {
   if (!container) return;
 
   if (container._autoTicker) {
     const previous = container._autoTicker;
-    if (previous.raf) cancelAnimationFrame(previous.raf);
-    if (previous.resumeTimeout) clearTimeout(previous.resumeTimeout);
     if (previous.listeners) {
       container.removeEventListener('pointerdown', previous.listeners.down);
       container.removeEventListener('pointerup', previous.listeners.up);
@@ -375,62 +412,27 @@ function initializeAutoTicker(container, speed = 0.8) {
     }
   }
 
-  const originalContent = container.dataset.originalContent || container.innerHTML;
-  container.dataset.originalContent = originalContent;
-  container.innerHTML = originalContent + originalContent;
-  container.scrollLeft = 0;
   container.style.scrollBehavior = 'auto';
   container.style.cursor = 'grab';
   container.style.touchAction = 'pan-y';
 
-  const state = {
-    speed,
-    paused: false,
-    pointerDown: false,
-    raf: null,
-    resumeTimeout: null,
-    listeners: {}
-  };
+  const state = { listeners: {} };
   container._autoTicker = state;
 
-  const pauseTicker = () => {
-    state.paused = true;
-    if (state.resumeTimeout) {
-      clearTimeout(state.resumeTimeout);
-      state.resumeTimeout = null;
-    }
-  };
-
-  const resumeTicker = () => {
-    if (state.resumeTimeout) {
-      clearTimeout(state.resumeTimeout);
-    }
-    state.resumeTimeout = setTimeout(() => {
-      state.paused = false;
-    }, 700);
-  };
-
   state.listeners.down = () => {
-    state.pointerDown = true;
-    pauseTicker();
     container.style.cursor = 'grabbing';
   };
   state.listeners.up = () => {
-    state.pointerDown = false;
-    resumeTicker();
     container.style.cursor = 'grab';
   };
   state.listeners.cancel = () => {
-    state.pointerDown = false;
-    resumeTicker();
     container.style.cursor = 'grab';
   };
   state.listeners.leave = () => {
-    if (!state.pointerDown) resumeTicker();
+    container.style.cursor = 'grab';
   };
   state.listeners.wheel = () => {
-    pauseTicker();
-    resumeTicker();
+    container.style.cursor = 'grab';
   };
 
   container.addEventListener('pointerdown', state.listeners.down);
@@ -438,24 +440,26 @@ function initializeAutoTicker(container, speed = 0.8) {
   container.addEventListener('pointercancel', state.listeners.cancel);
   container.addEventListener('pointerleave', state.listeners.leave);
   container.addEventListener('wheel', state.listeners.wheel, { passive: true });
+}
 
-  const step = () => {
-    if (!state.paused) {
-      container.scrollLeft += state.speed;
-      if (container.scrollLeft >= container.scrollWidth / 2) {
-        container.scrollLeft -= container.scrollWidth / 2;
-      }
+function safeScrollBy(container, left) {
+  if (!container || !left) return;
+  if (typeof container.scrollBy === 'function') {
+    try {
+      container.scrollBy(left, 0);
+      return;
+    } catch (err) {
+      // fallback to manual scrollLeft if numeric scrollBy is unavailable
     }
-    state.raf = requestAnimationFrame(step);
-  };
-
-  state.raf = requestAnimationFrame(step);
+  }
+  container.scrollLeft += left;
 }
 
 function moveCategories(direction) {
   const container = document.getElementById('categoriesContainer');
+  if (!container) return;
   const amount = container.clientWidth * 0.6;
-  container.scrollBy({ left: direction * amount, behavior: 'smooth' });
+  smoothHorizontalScroll(container, direction * amount);
 }
 
 function moveProductCarousel(button, direction) {
@@ -464,7 +468,7 @@ function moveProductCarousel(button, direction) {
   const carousel = section.querySelector('.products-carousel');
   if (!carousel) return;
   const amount = carousel.clientWidth * 0.7;
-  carousel.scrollBy({ left: direction * amount, behavior: 'smooth' });
+  smoothHorizontalScroll(carousel, direction * amount);
 }
 
 const obs = new IntersectionObserver(entries => {
@@ -484,11 +488,14 @@ function renderProducts() {
   let renderedCount = 0;
 
   adminData.categories.forEach(cat => {
-    const catProducts = adminData.products.filter(p => p.category && String(p.category).trim() === String(cat.id).trim());
+    const catId = cat && typeof cat === 'object' ? cat.id || cat.name : cat;
+    const categorySlug = normalizeCategorySlug(catId);
+    const catProducts = adminData.products.filter(p => p.category && String(p.category).trim() === String(catId).trim());
     if (catProducts.length > 0) {
       renderedCount += catProducts.length;
       const section = document.createElement('div');
       section.className = 'category-section reveal';
+      section.id = `category-${categorySlug}`;
       const productHTML = catProducts.map(product => {
         const priceFCFA = Math.round(Number(product.price) * (adminData.exchangeRate || 655));
         return `
