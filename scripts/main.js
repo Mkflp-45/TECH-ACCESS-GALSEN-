@@ -291,7 +291,7 @@ async function submitCustomerForm(event) {
     })),
     total: total,
     paymentMethod: method,
-    status: 'En attente',
+    status: method === 'wave' ? 'Payé' : 'En attente',
     orderToken,
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   };
@@ -301,7 +301,6 @@ async function submitCustomerForm(event) {
     const orderId = docRef.id;
     showToast('✅ Commande enregistrée !');
     closeCustomerModal();
-    window.open(`invoice.html?id=${orderId}&token=${orderToken}`, '_blank');
     const paymentUrl = getWavePaymentUrl(total, orderId);
     setTimeout(() => { window.location.href = paymentUrl; }, 1500);
   } catch (error) {

@@ -484,6 +484,8 @@ async function loadOrders(filter = 'all') {
     const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     tbody.innerHTML = orders.map(order => {
       const date = order.timestamp ? order.timestamp.toDate().toLocaleDateString('fr-FR') : '—';
+      const invoiceUrl = `invoice.html?id=${encodeURIComponent(order.id)}${order.orderToken ? `&token=${encodeURIComponent(order.orderToken)}` : ''}`;
+      const invoiceWindowName = `invoice_${order.id}`;
       return `
         <tr>
           <td><div style="font-size: 0.75rem;">${date}</div><div style="font-size: 0.6rem; color: var(--mid)">ID: ${order.id.substring(0,8)}</div></td>
@@ -498,7 +500,7 @@ async function loadOrders(filter = 'all') {
             </select>
           </td>
           <td><div class="action-buttons">
-            <button class="btn-edit" onclick="window.open('invoice.html?id=${order.id}' + (order.orderToken ? '&token=' + encodeURIComponent(order.orderToken) : ''), '_blank')">📄 Facture</button>
+            <button class="btn-edit" onclick="window.open('${invoiceUrl}', '${invoiceWindowName}', 'width=920,height=820')">📄 Facture</button>
             <button class="btn-delete" onclick="deleteOrder('${order.id}')">🗑️</button>
           </div></td>
         </tr>`;

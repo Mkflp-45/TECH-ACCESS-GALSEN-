@@ -1,8 +1,8 @@
 // JavaScript spécifique à invoice.html
 
 function showInvoiceError(message) {
-  const printButton = document.querySelector('.btn-print');
-  if (printButton) printButton.style.display = 'none';
+  const buttons = document.querySelectorAll('.invoice-actions button');
+  buttons.forEach(btn => btn.style.display = 'none');
   const invoiceCard = document.querySelector('.invoice-card');
   if (invoiceCard) {
     invoiceCard.innerHTML = `
@@ -14,10 +14,47 @@ function showInvoiceError(message) {
   }
 }
 
+function cleanWhatsappNumber(raw) {
+  if (!raw) return '';
+  let digits = raw.replace(/\D/g, '');
+  if (digits.startsWith('0')) digits = digits.slice(1);
+  if (digits.length === 8 || digits.length === 9) digits = '221' + digits;
+  if (digits.length === 9 && raw.trim().startsWith('7')) digits = '221' + digits;
+  return digits;
+}
+
+function getInvoiceUrl() {
+  return window.location.href;
+}
+
+function shareInvoiceWhatsApp() {
+  const phone = document.getElementById('custTel').textContent.trim();
+  const cleanNumber = cleanWhatsappNumber(phone);
+  const invoiceUrl = getInvoiceUrl();
+  const text = `Bonjour, voici la facture de votre commande TECH ACCESS : ${invoiceUrl}`;
+  if (!cleanNumber) {
+    alert('Aucun numéro WhatsApp valide trouvé pour le client.');
+    return;
+  }
+  window.open(`https://wa.me/${cleanNumber}?text=${encodeURIComponent(text)}`, '_blank');
+}
+
+function copyInvoiceLink() {
+  const invoiceUrl = getInvoiceUrl();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(invoiceUrl).then(() => {
+      alert('Lien de la facture copié dans le presse-papier.');
+    }).catch(() => {
+      prompt('Copiez le lien de la facture :', invoiceUrl);
+    });
+  } else {
+    prompt('Copiez le lien de la facture :', invoiceUrl);
+  }
+}
+
 async function loadInvoice() {
   const urlParams = new URLSearchParams(window.location.search);
   const orderId = urlParams.get('id');
-  const orderToken = urlParams.get('token');
 
   if (!orderId) {
     showInvoiceError('Aucun identifiant de commande fourni.');
@@ -32,11 +69,6 @@ async function loadInvoice() {
     }
 
     const order = doc.data();
-    if (order.orderToken && order.orderToken !== orderToken) {
-      showInvoiceError('Clé de facture invalide.');
-      return;
-    }
-
     const date = order.timestamp ? order.timestamp.toDate() : new Date();
     document.getElementById('invId').textContent = orderId.substring(0, 8).toUpperCase();
     document.getElementById('invDate').textContent = date.toLocaleDateString('fr-FR');
@@ -44,6 +76,7 @@ async function loadInvoice() {
     document.getElementById('custQuartier').textContent = order.customer.quartier;
     document.getElementById('custTel').textContent = order.customer.whatsapp;
     document.getElementById('invStatus').textContent = order.status || 'En attente';
+    document.getElementById('invPaymentMethod').textContent = order.paymentMethod ? order.paymentMethod : 'Non précisé';
     document.getElementById('itemsBody').innerHTML = order.items.map(item => `
       <tr><td>${item.name}</td><td>${item.qty}</td><td>${item.price.toLocaleString()} FCFA</td><td>${(item.price * item.qty).toLocaleString()} FCFA</td></tr>
     `).join('');
@@ -54,4 +87,19 @@ async function loadInvoice() {
   }
 }
 
-loadInvoice();
+function initInvoicePage() {
+  if (!auth) {
+    showInvoiceError('Firebase non initialisé.');
+    return;
+  }
+
+  auth.onAuthStateChanged((user) => {
+    if (!user) {
+      showInvoiceError('Veuillez vous connecter en admin pour afficher cette facture.');
+      return;
+    }
+    loadInvoice();
+  });
+}
+
+initInvoicePage();
