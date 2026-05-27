@@ -23,14 +23,25 @@ body {
   background: var(--black);
   color: var(--white);
   font-family: "DM Sans", sans-serif;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior-y: auto;
+  height: 100vh;
+  overflow: hidden;
   overscroll-behavior-x: contain;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   cursor: default;
 }
+
+.page-shell {
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-snap-type: y proximity;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+}
+
+.page-shell::-webkit-scrollbar { display: none; }
 
 button, a, .cart-btn, .btn-primary, .btn-secondary, .add-btn, .qty-btn, .newsletter-btn, .close-btn, .checkout-btn {
   cursor: pointer;
@@ -363,7 +374,12 @@ nav {
 .ticker-dot { color: var(--accent2); }
 
 /* SECTIONS */
-section { padding: 100px 40px; }
+section { padding: 100px 40px; scroll-snap-align: start; }
+
+.promo-banner,
+footer {
+  scroll-snap-align: start;
+}
 
 .section-label {
   font-family: "Space Mono", monospace;
