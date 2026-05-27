@@ -474,6 +474,19 @@ const obs = new IntersectionObserver(entries => {
   entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
 }, { threshold: 0.1 });
 
+function productMatchesQuery(product, query) {
+  if (!query) return true;
+  const categoryName = adminData.categories.find(cat => String(cat.id).trim() === String(product.category).trim())?.name || '';
+  const text = [product.name, product.desc, product.icon, product.badge, categoryName].filter(Boolean).join(' ').toLowerCase();
+  return text.includes(query);
+}
+
+function filterProducts() {
+  const query = document.getElementById('productSearch').value.trim().toLowerCase();
+  window.productSearchQuery = query;
+  renderProducts();
+}
+
 function renderProducts() {
   const container = document.getElementById('productsContainer');
   if (!container) return;
@@ -486,10 +499,11 @@ function renderProducts() {
 
   let renderedCount = 0;
 
+  const query = window.productSearchQuery || '';
   adminData.categories.forEach(cat => {
     const catId = cat && typeof cat === 'object' ? cat.id || cat.name : cat;
     const categorySlug = normalizeCategorySlug(catId);
-    const catProducts = adminData.products.filter(p => p.category && String(p.category).trim() === String(catId).trim());
+    const catProducts = adminData.products.filter(p => p.category && String(p.category).trim() === String(catId).trim() && productMatchesQuery(p, query));
     if (catProducts.length > 0) {
       renderedCount += catProducts.length;
       const section = document.createElement('div');
@@ -529,7 +543,7 @@ function renderProducts() {
   });
 
   if (renderedCount < adminData.products.length) {
-    const otherProducts = adminData.products.filter(p => !adminData.categories.some(cat => String(cat.id).trim() === String(p.category).trim()));
+    const otherProducts = adminData.products.filter(p => !adminData.categories.some(cat => String(cat.id).trim() === String(p.category).trim()) && productMatchesQuery(p, query));
     if (otherProducts.length > 0) {
       const section = document.createElement('div');
       section.className = 'category-section reveal';
