@@ -482,11 +482,17 @@ footer {
   min-width: 0;
   min-height: 240px;
   scrollbar-width: none;
+  scrollbar-color: transparent transparent;
+  -ms-overflow-style: none;
   will-change: scroll-position;
   cursor: grab;
 }
 
-.categories-grid::-webkit-scrollbar { display: none; }
+.categories-grid::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
 
 .categories-grid .cat-card {
   flex: 0 0 280px;
@@ -635,6 +641,7 @@ footer {
   scroll-behavior: auto;
   padding: 10px 5px 30px 5px;
   scrollbar-width: none;
+  scrollbar-color: transparent transparent;
   -ms-overflow-style: none;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
@@ -648,7 +655,10 @@ footer {
 
 .products-carousel:active { cursor: grabbing; }
 
-.products-carousel::-webkit-scrollbar { display: none; }
+.products-carousel::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
 
 .product-card {
   background: linear-gradient(180deg, rgba(17,17,17,0.98), rgba(8,8,8,0.98));

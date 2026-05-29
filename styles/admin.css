@@ -375,7 +375,24 @@ button { cursor: pointer; }
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 8px;
   overflow-x: auto;
+  overflow-y: hidden;
   margin-bottom: 30px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(13, 71, 161, 0.75) rgba(255, 255, 255, 0.05);
+}
+
+.table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: rgba(13, 71, 161, 0.75);
+  border-radius: 999px;
 }
 
 .table-container table {
