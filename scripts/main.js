@@ -413,7 +413,7 @@ function initializeAutoTicker(container) {
 
   container.style.scrollBehavior = 'auto';
   container.style.cursor = 'grab';
-  container.style.touchAction = 'pan-y';
+  container.style.touchAction = 'pan-x';
   container.style.scrollSnapType = 'x proximity';
 
   if (container._carouselBound) return;
@@ -427,8 +427,7 @@ function initializeAutoTicker(container) {
 
   const onPointerDown = event => {
     if (event.button !== 0 && event.pointerType === 'mouse') return;
-    if (event.target.closest('button, a')) return;
-    if (event.target.closest('.product-card, .cat-card') && !event.target.closest('.add-btn')) return;
+    if (event.target.closest('button, a, input, textarea, select')) return;
     dragging = true;
     startX = event.clientX;
     startScroll = container.scrollLeft;
