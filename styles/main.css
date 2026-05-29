@@ -481,16 +481,25 @@ footer {
   flex: 1;
   min-width: 0;
   min-height: 240px;
-  scrollbar-width: none;
-  scrollbar-color: transparent transparent;
-  -ms-overflow-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(13, 71, 161, 0.75) rgba(255, 255, 255, 0.05);
+  -ms-overflow-style: auto;
   will-change: scroll-position;
   cursor: grab;
 }
 
 .categories-grid::-webkit-scrollbar {
-  width: 0;
-  height: 0;
+  height: 8px;
+}
+
+.categories-grid::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+}
+
+.categories-grid::-webkit-scrollbar-thumb {
+  background: rgba(13, 71, 161, 0.75);
+  border-radius: 999px;
 }
 
 
@@ -640,9 +649,9 @@ footer {
   overflow-y: hidden;
   scroll-behavior: auto;
   padding: 10px 5px 30px 5px;
-  scrollbar-width: none;
-  scrollbar-color: transparent transparent;
-  -ms-overflow-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(13, 71, 161, 0.75) rgba(255, 255, 255, 0.05);
+  -ms-overflow-style: auto;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
@@ -656,8 +665,17 @@ footer {
 .products-carousel:active { cursor: grabbing; }
 
 .products-carousel::-webkit-scrollbar {
-  width: 0;
-  height: 0;
+  height: 8px;
+}
+
+.products-carousel::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+}
+
+.products-carousel::-webkit-scrollbar-thumb {
+  background: rgba(13, 71, 161, 0.75);
+  border-radius: 999px;
 }
 
 .product-card {
