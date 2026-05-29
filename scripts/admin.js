@@ -11,6 +11,12 @@ let currentData = {
 };
 
 function initApp() {
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 768) toggleAdminMenu(false);
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') toggleAdminMenu(false);
+  });
   if (!auth) return;
   auth.onAuthStateChanged(async (user) => {
     if (user) {
@@ -51,6 +57,7 @@ function showLogin() {
 function showAdmin() {
   document.getElementById('loginContainer').style.display = 'none';
   document.getElementById('adminLayout').style.display = 'grid';
+  toggleAdminMenu(false);
   document.getElementById('exchangeRate').value = currentData.exchangeRate;
   document.getElementById('wavePaymentLink').value = currentData.wavePaymentLink || '';
   updateDashboard();
@@ -134,11 +141,24 @@ function updateDashboard() {
   document.getElementById('statExchange').textContent = currentData.exchangeRate;
 }
 
+function toggleAdminMenu(forceOpen) {
+  const sidebar = document.querySelector('.admin-sidebar');
+  const overlay = document.getElementById('adminSidebarOverlay');
+  const toggle = document.getElementById('mobileNavToggle');
+  const open = typeof forceOpen === 'boolean' ? forceOpen : !sidebar.classList.contains('open');
+
+  sidebar?.classList.toggle('open', open);
+  overlay?.classList.toggle('show', open);
+  document.body.classList.toggle('admin-menu-open', open);
+  toggle?.setAttribute('aria-expanded', String(open));
+}
+
 function switchPanel(panel, button) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(panel).classList.add('active');
   if (button) button.classList.add('active');
+  toggleAdminMenu(false);
   if (panel === 'sales') loadOrders();
 }
 

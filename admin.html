@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TECH ACCESS — Panneau Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles/admin.css">
+<link rel="stylesheet" href="styles/admin.css?v=admin-mobile-1">
 
 
 
@@ -14,7 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth-compat.js"></script>
 <script src="firebase-config.js"></script>
-<script src="scripts/admin.js" defer></script>
+<script src="scripts/admin.js?v=admin-mobile-1" defer></script>
 
 </head>
 <body>
@@ -37,11 +37,14 @@
 <div class="admin-layout" id="adminLayout">
   <!-- HEADER -->
   <div class="admin-header">
+    <button class="mobile-nav-toggle" id="mobileNavToggle" aria-label="Ouvrir le menu admin" aria-expanded="false" onclick="toggleAdminMenu()">☰</button>
     <div class="admin-title">TECH ACCESS — ADMIN</div>
     <button class="logout-btn" onclick="logout()">Déconnexion</button>
   </div>
   
   <!-- CONTENT -->
+  <div class="admin-sidebar-overlay" id="adminSidebarOverlay" onclick="toggleAdminMenu(false)"></div>
+
   <div class="admin-content">
     <!-- SIDEBAR -->
     <div class="admin-sidebar">

@@ -125,17 +125,28 @@ function initializePage() {
 
 const mobileMenuToggle = document.getElementById('mobileMenuToggle');
 const navLinks = document.getElementById('navLinks');
+const navOverlay = document.getElementById('navOverlay');
 
-mobileMenuToggle.addEventListener('click', () => {
-  mobileMenuToggle.classList.toggle('active');
-  navLinks.classList.toggle('active');
+function setMenuOpen(isOpen) {
+  if (!mobileMenuToggle || !navLinks) return;
+  mobileMenuToggle.classList.toggle('active', isOpen);
+  navLinks.classList.toggle('active', isOpen);
+  navOverlay?.classList.toggle('show', isOpen);
+  document.body.classList.toggle('menu-open', isOpen);
+  mobileMenuToggle.setAttribute('aria-expanded', String(isOpen));
+}
+
+mobileMenuToggle?.addEventListener('click', () => {
+  setMenuOpen(!mobileMenuToggle.classList.contains('active'));
 });
 
-navLinks.querySelectorAll('a').forEach(link => {
-  link.addEventListener('click', () => {
-    mobileMenuToggle.classList.remove('active');
-    navLinks.classList.remove('active');
-  });
+navOverlay?.addEventListener('click', () => setMenuOpen(false));
+navLinks?.querySelectorAll('a').forEach(link => {
+  link.addEventListener('click', () => setMenuOpen(false));
+});
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') setMenuOpen(false);
 });
 
 const cursor = document.getElementById('cursor');
@@ -400,45 +411,62 @@ function renderCategories() {
 function initializeAutoTicker(container) {
   if (!container) return;
 
-  if (container._autoTicker) {
-    const previous = container._autoTicker;
-    if (previous.listeners) {
-      container.removeEventListener('pointerdown', previous.listeners.down);
-      container.removeEventListener('pointerup', previous.listeners.up);
-      container.removeEventListener('pointercancel', previous.listeners.cancel);
-      container.removeEventListener('pointerleave', previous.listeners.leave);
-      container.removeEventListener('wheel', previous.listeners.wheel, { passive: true });
-    }
-  }
-
   container.style.scrollBehavior = 'auto';
   container.style.cursor = 'grab';
-  container.style.touchAction = 'pan-y';
+  container.style.touchAction = 'pan-x';
+  container.style.scrollSnapType = 'x proximity';
 
-  const state = { listeners: {} };
-  container._autoTicker = state;
+  if (container._carouselBound) return;
+  container._carouselBound = true;
 
-  state.listeners.down = () => {
-    container.style.cursor = 'grabbing';
-  };
-  state.listeners.up = () => {
-    container.style.cursor = 'grab';
-  };
-  state.listeners.cancel = () => {
-    container.style.cursor = 'grab';
-  };
-  state.listeners.leave = () => {
-    container.style.cursor = 'grab';
-  };
-  state.listeners.wheel = () => {
-    container.style.cursor = 'grab';
+  let startX = 0;
+  let startScroll = 0;
+  let lastX = 0;
+  let lastTime = 0;
+  let dragging = false;
+
+  const onPointerDown = event => {
+    if (event.button !== 0 && event.pointerType === 'mouse') return;
+    if (event.target.closest('button, a')) return;
+    dragging = true;
+    startX = event.clientX;
+    startScroll = container.scrollLeft;
+    lastX = event.clientX;
+    lastTime = performance.now();
+    container.classList.add('dragging');
+    container.setPointerCapture?.(event.pointerId);
   };
 
-  container.addEventListener('pointerdown', state.listeners.down);
-  container.addEventListener('pointerup', state.listeners.up);
-  container.addEventListener('pointercancel', state.listeners.cancel);
-  container.addEventListener('pointerleave', state.listeners.leave);
-  container.addEventListener('wheel', state.listeners.wheel, { passive: true });
+  const onPointerMove = event => {
+    if (!dragging) return;
+    const delta = event.clientX - startX;
+    const now = performance.now();
+    const velocity = (event.clientX - lastX) / Math.max(1, now - lastTime);
+    lastX = event.clientX;
+    lastTime = now;
+    container.scrollLeft = startScroll - delta;
+    if (Math.abs(velocity) > 0.15) container.dataset.velocity = String(velocity);
+  };
+
+  const finishDrag = event => {
+    if (!dragging) return;
+    dragging = false;
+    container.classList.remove('dragging');
+    const velocity = Number(container.dataset.velocity || 0);
+    if (Math.abs(velocity) > 0.18) {
+      smoothHorizontalScroll(container, velocity * 180);
+    }
+    container.releasePointerCapture?.(event.pointerId);
+    delete container.dataset.velocity;
+  };
+
+  container.addEventListener('pointerdown', onPointerDown);
+  container.addEventListener('pointermove', onPointerMove, { passive: true });
+  container.addEventListener('pointerup', finishDrag);
+  container.addEventListener('pointercancel', finishDrag);
+  container.addEventListener('wheel', () => {
+    container.style.cursor = 'grab';
+  }, { passive: true });
 }
 
 function safeScrollBy(container, left) {
@@ -593,8 +621,7 @@ document.querySelectorAll('.reveal').forEach(r => obs.observe(r));
 
 window.addEventListener('resize', () => {
   if (window.innerWidth > 768) {
-    mobileMenuToggle.classList.remove('active');
-    navLinks.classList.remove('active');
+    setMenuOpen(false);
   }
 });
 

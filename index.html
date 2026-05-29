@@ -32,6 +32,8 @@
 
 <!-- NAV -->
 
+<div class="nav-overlay" id="navOverlay" hidden></div>
+
 <nav>
   <a href="#" class="logo"><img src="logo.svg" alt="TECH ACCESS"> TECH <span>ACCESS</span></a>
   <ul class="nav-links" id="navLinks">
@@ -46,7 +48,7 @@
       <div class="cart-count" id="cartCount">0</div>
     </button>
   </div>
-  <button class="mobile-menu-toggle" id="mobileMenuToggle">
+  <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-expanded="false" aria-controls="navLinks" aria-label="Ouvrir le menu">
     <span></span>
     <span></span>
     <span></span>
