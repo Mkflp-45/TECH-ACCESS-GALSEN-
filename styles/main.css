@@ -45,7 +45,7 @@ body.menu-open {
   scroll-snap-type: y proximity;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: none;
-  touch-action: manipulation;
+  touch-action: pan-y pinch-zoom;
   position: relative;
 }
 
@@ -692,12 +692,9 @@ footer {
   user-select: none;
 }
 
-.product-card > *:not(.add-btn) {
-  pointer-events: none;
-}
-
 .product-card .add-btn {
   pointer-events: auto;
+  touch-action: manipulation;
 }
 
 .product-img {

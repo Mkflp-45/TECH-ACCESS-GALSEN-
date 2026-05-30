@@ -426,8 +426,10 @@ function initializeAutoTicker(container) {
   let dragging = false;
 
   const onPointerDown = event => {
-    if (event.button !== 0 && event.pointerType === 'mouse') return;
+    if (event.pointerType !== 'mouse') return;
+    if (event.button !== 0) return;
     if (event.target.closest('button, a, input, textarea, select')) return;
+
     dragging = true;
     startX = event.clientX;
     startScroll = container.scrollLeft;
@@ -439,34 +441,41 @@ function initializeAutoTicker(container) {
 
   const onPointerMove = event => {
     if (!dragging) return;
-    const delta = event.clientX - startX;
+    event.preventDefault();
+
+    const deltaX = event.clientX - startX;
     const now = performance.now();
-    const velocity = (event.clientX - lastX) / Math.max(1, now - lastTime);
+    const elapsed = Math.max(1, now - lastTime);
+    const velocity = (event.clientX - lastX) / elapsed;
+
     lastX = event.clientX;
     lastTime = now;
-    container.scrollLeft = startScroll - delta;
-    if (Math.abs(velocity) > 0.15) container.dataset.velocity = String(velocity);
+    container.scrollLeft = startScroll - deltaX;
+
+    if (Math.abs(velocity) > 0.15) {
+      container.dataset.velocity = String(velocity);
+    }
   };
 
   const finishDrag = event => {
     if (!dragging) return;
     dragging = false;
     container.classList.remove('dragging');
+
     const velocity = Number(container.dataset.velocity || 0);
     if (Math.abs(velocity) > 0.18) {
-      smoothHorizontalScroll(container, velocity * 180);
+      smoothHorizontalScroll(container, velocity * 200);
     }
+
     container.releasePointerCapture?.(event.pointerId);
     delete container.dataset.velocity;
   };
 
   container.addEventListener('pointerdown', onPointerDown);
-  container.addEventListener('pointermove', onPointerMove, { passive: true });
+  container.addEventListener('pointermove', onPointerMove);
   container.addEventListener('pointerup', finishDrag);
   container.addEventListener('pointercancel', finishDrag);
-  container.addEventListener('wheel', () => {
-    container.style.cursor = 'grab';
-  }, { passive: true });
+  container.addEventListener('lostpointercapture', finishDrag);
 }
 
 function safeScrollBy(container, left) {
