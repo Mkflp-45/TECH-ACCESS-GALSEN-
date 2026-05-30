@@ -139,6 +139,60 @@ function updateDashboard() {
   document.getElementById('statProducts').textContent = currentData.products.length;
   document.getElementById('statCategories').textContent = currentData.categories.length;
   document.getElementById('statExchange').textContent = currentData.exchangeRate;
+  
+  // Calcul du revenu total et préparation du graphique
+  renderSalesDashboard();
+}
+
+async function renderSalesDashboard() {
+  const snapshot = await db.collection('orders').orderBy('timestamp', 'asc').get();
+  let totalRevenue = 0;
+  const dailySales = {};
+
+  snapshot.forEach(doc => {
+    const order = doc.data();
+    totalRevenue += (Number(order.total) || 0);
+    
+    if (order.timestamp) {
+      const date = order.timestamp.toDate().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+      dailySales[date] = (dailySales[date] || 0) + (Number(order.total) || 0);
+    }
+  });
+
+  const revenueEl = document.getElementById('statRevenue');
+  if (revenueEl) revenueEl.textContent = totalRevenue.toLocaleString() + ' FCFA';
+
+  // Rendu du graphique
+  const ctx = document.getElementById('salesChart')?.getContext('2d');
+  if (!ctx) return;
+
+  if (window.revenueChart) window.revenueChart.destroy();
+
+  const labels = Object.keys(dailySales).slice(-7); // 7 derniers jours
+  const data = labels.map(l => dailySales[l]);
+
+  window.revenueChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Ventes (FCFA)',
+        data: data,
+        borderColor: '#1E88E5',
+        backgroundColor: 'rgba(30, 136, 229, 0.1)',
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#aaa' } },
+        x: { grid: { display: false }, ticks: { color: '#aaa' } }
+      }
+    }
+  });
 }
 
 function toggleAdminMenu(forceOpen) {
@@ -174,6 +228,7 @@ function openProductModal(id = null) {
     document.getElementById('productCategory').value = product.category;
     document.getElementById('productRating').value = product.rating || 5;
     document.getElementById('productBadge').value = product.badge || '';
+    if(document.getElementById('productStock')) document.getElementById('productStock').value = product.stock || 0;
     document.getElementById('productImagePreview').textContent = product.icon;
     if (product.image) {
       document.getElementById('productImagePreview').innerHTML = `<img src="${product.image}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">`;
@@ -186,6 +241,7 @@ function openProductModal(id = null) {
     document.getElementById('productCategory').value = '';
     document.getElementById('productRating').value = 5;
     document.getElementById('productBadge').value = '';
+    if(document.getElementById('productStock')) document.getElementById('productStock').value = 0;
     document.getElementById('productImagePreview').textContent = '📦';
   }
   document.getElementById('productModal').classList.add('active');
@@ -217,6 +273,7 @@ function saveProduct() {
   const desc = document.getElementById('productDesc').value.trim();
   const rating = parseFloat(document.getElementById('productRating').value);
   const badge = document.getElementById('productBadge').value.trim();
+  const stock = parseInt(document.getElementById('productStock')?.value || 0);
   if (!name || isNaN(priceFCFA) || !category || !desc) {
     showToast('❌ Remplissez tous les champs obligatoires', 'error');
     return;
@@ -235,6 +292,7 @@ function saveProduct() {
     desc: desc,
     rating: rating,
     badge: badge,
+    stock: stock,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   if (imageData) productData.image = imageData;
@@ -506,6 +564,11 @@ async function loadOrders(filter = 'all') {
       const date = order.timestamp ? order.timestamp.toDate().toLocaleDateString('fr-FR') : '—';
       const invoiceUrl = `invoice.html?id=${encodeURIComponent(order.id)}${order.orderToken ? `&token=${encodeURIComponent(order.orderToken)}` : ''}`;
       const invoiceWindowName = `invoice_${order.id}`;
+      
+      let statusColor = '#ffa500'; // Orange par défaut
+      if (order.status === 'Payé') statusColor = '#2e7d32'; // Vert
+      if (order.status === 'Annulé') statusColor = '#c62828'; // Rouge
+
       return `
         <tr>
           <td><div style="font-size: 0.75rem;">${date}</div><div style="font-size: 0.6rem; color: var(--mid)">ID: ${order.id.substring(0,8)}</div></td>
@@ -513,7 +576,7 @@ async function loadOrders(filter = 'all') {
           <td style="font-size: 0.75rem;">${order.items.map(i => `${i.qty}x ${i.name}`).join('<br>')}</td>
           <td style="font-weight:700; color:var(--accent2)">${order.total.toLocaleString()} FCFA</td>
           <td>
-            <select onchange="updateOrderStatus('${order.id}', this.value)" style="padding:4px; background:var(--black); color:white; border:1px solid var(--mid);">
+            <select onchange="updateOrderStatus('${order.id}', this.value)" style="padding:4px; background:${statusColor}; color:white; border:none; border-radius:4px; font-weight:bold;">
               <option value="En attente" ${order.status === 'En attente' ? 'selected' : ''}>⏳ Attente</option>
               <option value="Payé" ${order.status === 'Payé' ? 'selected' : ''}>✅ Payé</option>
               <option value="Annulé" ${order.status === 'Annulé' ? 'selected' : ''}>❌ Annulé</option>

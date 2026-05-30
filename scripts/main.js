@@ -395,7 +395,7 @@ function renderCategories() {
     const bgStyle = `background-image: url('${backgroundImage}'); background-size: cover; background-position: center;`;
     return `
       <a class="cat-card" href="#category-${categorySlug}" onclick="scrollToCategory('${categorySlug}'); return false;" style="${bgStyle}" draggable="false">
-        <div class="cat-overlay" style="pointer-events: none;">
+        <div class="cat-overlay" style="pointer-events: none; background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 60%);">
           <span class="cat-name">${catName}</span>
           <span class="cat-count">${count} produits</span>
         </div>
@@ -549,15 +549,15 @@ function renderProducts() {
       const productHTML = catProducts.map(product => {
         const priceFCFA = Math.round(Number(product.price) * (adminData.exchangeRate || 655));
         return `
-          <div class="product-card" style="user-select: none; -webkit-user-select: none;" draggable="false">
+          <div class="product-card" style="user-select: none; -webkit-user-select: none; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer;" draggable="false">
             <div class="product-img" style="font-size: 0; pointer-events: none;">
-              ${product.image ? `<img src="${product.image}" style="width: 100%; height: 100%; object-fit: cover;" draggable="false">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
-              ${product.badge ? `<div class="product-badge ${product.badge.toLowerCase().includes('nouveau') ? 'new' : ''}">${product.badge}</div>` : ''}
+              ${product.image ? `<img src="${product.image}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" draggable="false">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
+              ${product.badge ? `<div class="product-badge ${product.badge.toLowerCase().includes('nouveau') ? 'new' : ''}" style="text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">${product.badge}</div>` : ''}
             </div>
             <div class="product-info" style="pointer-events: none;">
-              <div class="stars">★★★★★</div>
-              <div class="product-name">${product.name}</div>
-              <div class="product-desc">${product.desc || ''}</div>
+              <div class="stars" style="color: #ffb400; letter-spacing: 2px; margin-bottom: 4px;">★★★★★</div>
+              <div class="product-name" style="font-weight: 700; font-size: 1.05rem; margin-bottom: 4px;">${product.name}</div>
+              <div class="product-desc" style="opacity: 0.7; font-size: 0.85rem; line-height: 1.3;">${product.desc || ''}</div>
               <div class="product-bottom" style="pointer-events: auto;">
                 <div class="product-price">${priceFCFA.toLocaleString()} FCFA</div>
                 <button type="button" class="add-btn" onclick="addToCart('${product.id}')">+</button>
@@ -590,14 +590,14 @@ function renderProducts() {
           ${otherProducts.map(product => {
             const priceFCFA = Math.round(Number(product.price) * (adminData.exchangeRate || 655));
             return `
-              <div class="product-card" style="user-select: none; -webkit-user-select: none;" draggable="false">
+              <div class="product-card" style="user-select: none; -webkit-user-select: none; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer;" draggable="false">
                 <div class="product-img" style="font-size: 0; pointer-events: none;">
-                  ${product.image ? `<img src="${product.image}" style="width: 100%; height: 100%; object-fit: cover;" draggable="false">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
+                  ${product.image ? `<img src="${product.image}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" draggable="false">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
                 </div>
                 <div class="product-info" style="pointer-events: none;">
-                  <div class="stars">★★★★★</div>
-                  <div class="product-name">${product.name}</div>
-                  <div class="product-desc">${product.desc || ''}</div>
+                  <div class="stars" style="color: #ffb400; letter-spacing: 2px; margin-bottom: 4px;">★★★★★</div>
+                  <div class="product-name" style="font-weight: 700; font-size: 1.05rem; margin-bottom: 4px;">${product.name}</div>
+                  <div class="product-desc" style="opacity: 0.7; font-size: 0.85rem; line-height: 1.3;">${product.desc || ''}</div>
                   <div class="product-bottom" style="pointer-events: auto;">
                     <div class="product-price">${priceFCFA.toLocaleString()} FCFA</div>
                     <button type="button" class="add-btn" onclick="addToCart('${product.id}')">+</button>

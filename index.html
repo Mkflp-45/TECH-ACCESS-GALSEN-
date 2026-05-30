@@ -7,7 +7,39 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles/main.css?v=mobilefix-1">
 
-
+<style>
+  /* Micro-interactions Premium */
+  .product-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1) !important;
+  }
+  .product-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    border-color: var(--accent);
+  }
+  .product-card:hover .product-img img {
+    transform: scale(1.1);
+  }
+  .cat-card {
+    border-radius: 16px;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+  }
+  .cat-card:hover {
+    transform: scale(0.98);
+  }
+  .add-btn {
+    transition: all 0.2s ease;
+  }
+  .add-btn:active {
+    transform: scale(0.8);
+  }
+</style>
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore-compat.js"></script>
