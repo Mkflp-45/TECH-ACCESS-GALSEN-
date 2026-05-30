@@ -413,7 +413,7 @@ function initializeAutoTicker(container) {
 
   container.style.scrollBehavior = 'auto';
   container.style.cursor = 'grab';
-  container.style.touchAction = 'pan-x';
+  container.style.touchAction = 'pan-x pan-y';
   container.style.scrollSnapType = 'x proximity';
 
   if (container._carouselBound) return;

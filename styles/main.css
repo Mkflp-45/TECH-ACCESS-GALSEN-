@@ -696,12 +696,8 @@ footer {
   touch-action: auto;
 }
 
-.product-card .add-btn {
-  pointer-events: auto;
-  touch-action: manipulation;
-}
-
 .product-img {
+  pointer-events: none;
   width: 100%; aspect-ratio: 1;
   background: var(--gray);
   display: flex;
@@ -718,23 +714,15 @@ footer {
 }
 
 .product-card, .cat-card { transform: translate3d(0, 0, 0); backface-visibility: hidden; will-change: transform, opacity; }
-.product-badge {
-  position: absolute;
-  top: 14px; left: 14px;
-  background: var(--accent2);
-  color: var(--black);
-  font-family: "Space Mono", monospace;
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 1px;
-  padding: 4px 10px;
-  text-transform: uppercase;
-}
-
-.product-badge.new { background: var(--accent); color: var(--white); }
 
 .product-info {
+  pointer-events: none;
   padding: 20px 22px 24px;
+}
+
+.product-card .add-btn {
+  pointer-events: auto;
+  touch-action: manipulation;
 }
 
 .product-cat {
