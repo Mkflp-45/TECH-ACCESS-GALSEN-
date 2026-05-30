@@ -713,7 +713,10 @@ footer {
   transition: transform 0.4s ease;
 }
 
-.product-card:hover .product-img { transform: scale(1.03); }
+@media (hover: hover) {
+  .product-card:hover .product-img { transform: scale(1.03); }
+}
+
 .product-card, .cat-card { transform: translate3d(0, 0, 0); backface-visibility: hidden; will-change: transform, opacity; }
 .product-badge {
   position: absolute;
@@ -1356,6 +1359,9 @@ footer {
 }
 
 @media (max-width: 768px) {
+  .product-img {
+    transition: none;
+  }
   .cursor, .cursor-ring { display: none; }
   nav { flex-wrap: nowrap; gap: 0; justify-content: space-between; padding: 16px 20px; }
   .mobile-menu-toggle { display: block; }
