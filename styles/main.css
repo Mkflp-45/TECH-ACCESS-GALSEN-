@@ -475,7 +475,7 @@ footer {
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scroll-behavior: auto;
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
   overscroll-behavior-x: contain;
   padding: 24px 0 12px;
   flex: 1;
@@ -654,7 +654,7 @@ footer {
   -ms-overflow-style: auto;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
   overscroll-behavior-x: contain;
   will-change: scroll-position;
   cursor: grab;
