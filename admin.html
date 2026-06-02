@@ -56,6 +56,10 @@
         <button class="sidebar-btn" onclick="switchPanel('categories', this)">🏷️ Catégories</button>
         <button class="sidebar-btn" onclick="switchPanel('sales', this)">💰 Ventes</button>
         <button class="sidebar-btn" onclick="switchPanel('finance', this)">💼 Finances</button>
+        <button class="sidebar-btn" onclick="switchPanel('inventory', this)">📦 Inventaire</button>
+        <button class="sidebar-btn" onclick="switchPanel('support', this)">🛠️ Support</button>
+        <button class="sidebar-btn" onclick="switchPanel('reports', this)">📈 Rapports</button>
+        <button class="sidebar-btn" onclick="switchPanel('promotions', this)">🏷️ Promotions</button>
         <button class="sidebar-btn" onclick="switchPanel('ticker', this)">📢 Ticker</button>
       </div>
       <div class="sidebar-section">
@@ -80,8 +84,12 @@
             <div class="stat-label">Catégories</div>
           </div>
           <div class="stat-card">
-            <div class="stat-value" id="statExchange">655</div>
-            <div class="stat-label">Taux EUR→FCFA</div>
+            <div class="stat-value" id="statOrders">0</div>
+            <div class="stat-label">Commandes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statAvgOrder">0 FCFA</div>
+            <div class="stat-label">Ticket moyen</div>
           </div>
           <div class="stat-card">
             <div class="stat-value" id="statRevenue">0 FCFA</div>
@@ -115,6 +123,7 @@
                 <th>Image</th>
                 <th>Nom</th>
                 <th>Catégorie</th>
+                <th>Stock</th>
                 <th>Prix FCFA</th>
                 <th>Actions</th>
               </tr>
@@ -129,12 +138,37 @@
       <div class="panel" id="sales">
         <div class="section-title">SUIVI DES VENTES</div>
         
-        <div style="display: flex; gap: 15px; margin-bottom: 25px; align-items: center;">
+        <div class="stats-grid" style="margin-bottom: 24px;">
+          <div class="stat-card">
+            <div class="stat-value" id="salesTotalRevenue">0 FCFA</div>
+            <div class="stat-label">Total des ventes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="salesTotalOrders">0</div>
+            <div class="stat-label">Nombre de commandes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="salesAvgOrder">0 FCFA</div>
+            <div class="stat-label">Ticket moyen</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="salesTopProduct">—</div>
+            <div class="stat-label">Produit top</div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 25px; align-items: center;">
           <span class="sidebar-label" style="margin: 0;">Filtrer :</span>
           <button class="btn-secondary" style="padding: 8px 16px; font-size: 0.7rem;" onclick="loadOrders('all')">Tout</button>
           <button class="btn-secondary" style="padding: 8px 16px; font-size: 0.7rem;" onclick="loadOrders('day')">Aujourd'hui</button>
           <button class="btn-secondary" style="padding: 8px 16px; font-size: 0.7rem;" onclick="loadOrders('week')">Cette semaine</button>
           <button class="btn-secondary" style="padding: 8px 16px; font-size: 0.7rem;" onclick="loadOrders('month')">Ce mois</button>
+          <div style="display:flex; gap:10px; flex-wrap: wrap;">
+            <input type="date" id="ordersFromDate" style="padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color:#fff;">
+            <input type="date" id="ordersToDate" style="padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color:#fff;">
+            <button class="btn-secondary" style="padding: 8px 16px; font-size: 0.7rem;" onclick="loadOrders('range')">Appliquer</button>
+            <button class="btn-secondary" style="padding: 8px 16px; font-size: 0.7rem;" onclick="exportOrders()">📥 Exporter</button>
+          </div>
         </div>
 
         <div class="table-container">
@@ -215,6 +249,20 @@
       <!-- INVENTORY -->
       <div class="panel" id="inventory">
         <div class="section-title">INVENTAIRE</div>
+        <div class="stats-grid" style="margin-bottom: 24px;">
+          <div class="stat-card">
+            <div class="stat-value" id="inventoryTotalProducts">0</div>
+            <div class="stat-label">Produits suivis</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="inventoryLowStock">0</div>
+            <div class="stat-label">Stock critique</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="inventoryStockValue">0 FCFA</div>
+            <div class="stat-label">Valeur stock</div>
+          </div>
+        </div>
         <div class="table-container">
           <table>
             <thead>
@@ -234,6 +282,16 @@
       <!-- SUPPORT -->
       <div class="panel" id="support">
         <div class="section-title">SUPPORT CLIENT</div>
+        <div class="form-row" style="margin-bottom: 20px; gap: 12px; align-items: center;">
+          <input type="text" id="supportSearch" placeholder="Rechercher un ticket..." style="flex:1; padding: 10px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color:#fff;">
+          <select id="supportStatusFilter" style="padding: 10px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color:#fff;">
+            <option value="all">Tous</option>
+            <option value="Nouveau">Nouveau</option>
+            <option value="En cours">En cours</option>
+            <option value="Résolu">Résolu</option>
+          </select>
+          <button class="btn-secondary" onclick="loadSupportTickets()">Filtrer</button>
+        </div>
         <div class="form-group">
           <label>Nouveau ticket de support</label>
           <div class="form-row">
@@ -269,6 +327,12 @@
       <!-- REPORTS -->
       <div class="panel" id="reports">
         <div class="section-title">RAPPORTS</div>
+        <div class="form-row" style="margin-bottom: 20px; gap: 12px; align-items: center;">
+          <input type="date" id="reportsFromDate" style="padding: 10px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color:#fff;">
+          <input type="date" id="reportsToDate" style="padding: 10px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color:#fff;">
+          <button class="btn-secondary" onclick="loadReports()">Filtrer</button>
+          <button class="btn-secondary" onclick="exportReport()">📥 Exporter</button>
+        </div>
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-value" id="reportTotalRevenue">0 FCFA</div>
@@ -303,6 +367,19 @@
             <tbody id="reportsTopProductsBody"></tbody>
           </table>
         </div>
+        <div class="section-title" style="margin-top: 30px;">Top catégories</div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Catégorie</th>
+                <th>Ventes</th>
+                <th>Montant total</th>
+              </tr>
+            </thead>
+            <tbody id="reportsTopCategoriesBody"></tbody>
+          </table>
+        </div>
         <button class="btn-secondary" onclick="exportReport()">📥 Exporter le rapport</button>
       </div>
 
@@ -321,6 +398,15 @@
           </div>
           <label style="margin-bottom: 10px; display: block;"><input type="checkbox" id="promoActive" checked> Actif</label>
           <button class="btn-primary" onclick="savePromotion()">🏷️ Enregistrer une promo</button>
+        </div>
+        <div class="form-row" style="margin-bottom: 20px; gap: 12px; align-items: center;">
+          <input type="text" id="promoSearch" placeholder="Rechercher un code..." style="flex:1; padding: 10px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color:#fff;">
+          <select id="promoFilter" style="padding: 10px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color:#fff;">
+            <option value="all">Tous</option>
+            <option value="active">Actifs</option>
+            <option value="expired">Expirés</option>
+          </select>
+          <button class="btn-secondary" onclick="loadPromotions()">Filtrer</button>
         </div>
         <div class="section-title" style="margin-top: 30px;">Promotions actives</div>
         <div class="table-container">

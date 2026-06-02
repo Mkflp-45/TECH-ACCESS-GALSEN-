@@ -148,11 +148,20 @@ function updateDashboard() {
 async function renderSalesDashboard() {
   const snapshot = await db.collection('orders').orderBy('timestamp', 'asc').get();
   let totalRevenue = 0;
+  let totalOrders = 0;
+  const productSales = {};
   const dailySales = {};
 
   snapshot.forEach(doc => {
     const order = doc.data();
     totalRevenue += (Number(order.total) || 0);
+    totalOrders += 1;
+    
+    (order.items || []).forEach(item => {
+      const name = item.name || 'Produit inconnu';
+      if (!productSales[name]) productSales[name] = 0;
+      productSales[name] += Number(item.qty) || 0;
+    });
     
     if (order.timestamp) {
       const date = order.timestamp.toDate().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
@@ -161,7 +170,16 @@ async function renderSalesDashboard() {
   });
 
   const revenueEl = document.getElementById('statRevenue');
+  const ordersEl = document.getElementById('statOrders');
+  const avgOrderEl = document.getElementById('statAvgOrder');
+  const topProductEl = document.getElementById('statTopProduct');
   if (revenueEl) revenueEl.textContent = totalRevenue.toLocaleString() + ' FCFA';
+  if (ordersEl) ordersEl.textContent = totalOrders;
+  if (avgOrderEl) avgOrderEl.textContent = totalOrders ? formatFCFA(totalRevenue / totalOrders) : '0 FCFA';
+  if (topProductEl) {
+    const topProduct = Object.entries(productSales).sort((a, b) => b[1] - a[1])[0];
+    topProductEl.textContent = topProduct ? topProduct[0] : '—';
+  }
 
   // Rendu du graphique
   const ctx = document.getElementById('salesChart')?.getContext('2d');
@@ -367,12 +385,15 @@ function renderProducts(productsToRender = null) {
   tbody.innerHTML = products.map(p => {
     const price = Number(p.price) || 0;
     const exchangeRate = Number(currentData.exchangeRate) || 1;
+    const stock = Number(p.stock || 0);
+    const stockLabel = stock <= 5 ? `<span style="color:#ffb400; font-weight:700;">${stock}</span>` : `<span>${stock}</span>`;
     return `
       <tr class="${selectedProductIds.has(p.id) ? 'selected-row' : ''}">
         <td><input type="checkbox" class="product-checkbox" data-id="${p.id}" ${selectedProductIds.has(p.id) ? 'checked' : ''} onclick="toggleProductSelection('${p.id}')"></td>
         <td style="font-size: 1.5rem;">${p.image ? `<img src="${p.image}" style="width: 40px; height: 40px; border-radius: 4px;">` : p.icon || '📦'}</td>
         <td>${p.name || '—'}</td>
         <td>${p.category || 'Autre'}</td>
+        <td>${stockLabel}</td>
         <td>${(price * exchangeRate).toFixed(0)} FCFA</td>
         <td>
           <div class="action-buttons">
@@ -553,6 +574,10 @@ function renderTicker() {
 
 async function loadOrders(filter = 'all') {
   const tbody = document.getElementById('salesTableBody');
+  const totalRevenueEl = document.getElementById('salesTotalRevenue');
+  const totalOrdersEl = document.getElementById('salesTotalOrders');
+  const avgOrderEl = document.getElementById('salesAvgOrder');
+  const topProductEl = document.getElementById('salesTopProduct');
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Chargement...</td></tr>';
   try {
     let query = db.collection('orders').orderBy('timestamp', 'desc');
@@ -562,25 +587,63 @@ async function loadOrders(filter = 'all') {
       if (filter === 'day') start.setHours(0,0,0,0);
       else if (filter === 'week') start.setDate(now.getDate() - 7);
       else if (filter === 'month') start.setMonth(now.getMonth() - 1);
-      query = query.where('timestamp', '>=', start);
+      else if (filter === 'range') {
+        const fromValue = document.getElementById('ordersFromDate').value;
+        const toValue = document.getElementById('ordersToDate').value;
+        const from = fromValue ? new Date(fromValue) : null;
+        const to = toValue ? new Date(toValue) : null;
+        if (from && !isNaN(from)) {
+          from.setHours(0,0,0,0);
+          query = query.where('timestamp', '>=', from);
+        }
+        if (to && !isNaN(to)) {
+          to.setHours(23,59,59,999);
+          query = query.where('timestamp', '<=', to);
+        }
+      }
+      if (filter !== 'range') query = query.where('timestamp', '>=', start);
     }
     const snapshot = await query.get();
     const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    window.currentOrders = orders;
+
+    const productSales = {};
+    let totalRevenue = 0;
+    orders.forEach(order => {
+      totalRevenue += Number(order.total) || 0;
+      (order.items || []).forEach(item => {
+        const name = item.name || 'Produit inconnu';
+        productSales[name] = (productSales[name] || 0) + (Number(item.qty) || 0);
+      });
+    });
+    const avgOrder = orders.length ? totalRevenue / orders.length : 0;
+    const topProduct = Object.entries(productSales).sort((a, b) => b[1] - a[1])[0];
+
+    if (totalRevenueEl) totalRevenueEl.textContent = formatFCFA(totalRevenue);
+    if (totalOrdersEl) totalOrdersEl.textContent = orders.length;
+    if (avgOrderEl) avgOrderEl.textContent = formatFCFA(avgOrder);
+    if (topProductEl) topProductEl.textContent = topProduct ? topProduct[0] : '—';
+
+    if (!orders.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Aucune commande trouvée.</td></tr>';
+      return;
+    }
+
     tbody.innerHTML = orders.map(order => {
       const date = order.timestamp ? order.timestamp.toDate().toLocaleDateString('fr-FR') : '—';
       const invoiceUrl = `invoice.html?id=${encodeURIComponent(order.id)}${order.orderToken ? `&token=${encodeURIComponent(order.orderToken)}` : ''}`;
       const invoiceWindowName = `invoice_${order.id}`;
       
-      let statusColor = '#ffa500'; // Orange par défaut
-      if (order.status === 'Payé') statusColor = '#2e7d32'; // Vert
-      if (order.status === 'Annulé') statusColor = '#c62828'; // Rouge
+      let statusColor = '#ffa500';
+      if (order.status === 'Payé') statusColor = '#2e7d32';
+      if (order.status === 'Annulé') statusColor = '#c62828';
 
       return `
         <tr>
           <td><div style="font-size: 0.75rem;">${date}</div><div style="font-size: 0.6rem; color: var(--mid)">ID: ${order.id.substring(0,8)}</div></td>
           <td><div style="font-weight:700">${order.customer.firstName} ${order.customer.name}</div><div style="font-size: 0.7rem;">📍 ${order.customer.quartier}</div></td>
-          <td style="font-size: 0.75rem;">${order.items.map(i => `${i.qty}x ${i.name}`).join('<br>')}</td>
-          <td style="font-weight:700; color:var(--accent2)">${order.total.toLocaleString()} FCFA</td>
+          <td style="font-size: 0.75rem;">${(order.items || []).map(i => `${i.qty}x ${i.name}`).join('<br>')}</td>
+          <td style="font-weight:700; color:var(--accent2)">${formatFCFA(order.total)}</td>
           <td>
             <select onchange="updateOrderStatus('${order.id}', this.value)" style="padding:4px; background:${statusColor}; color:white; border:none; border-radius:4px; font-weight:bold;">
               <option value="En attente" ${order.status === 'En attente' ? 'selected' : ''}>⏳ Attente</option>
@@ -612,7 +675,20 @@ function formatFCFA(value) {
 
 function loadInventory() {
   const tbody = document.getElementById('inventoryTableBody');
+  const totalProductsEl = document.getElementById('inventoryTotalProducts');
+  const lowStockEl = document.getElementById('inventoryLowStock');
+  const stockValueEl = document.getElementById('inventoryStockValue');
   if (!tbody) return;
+
+  const lowStockCount = currentData.products.filter(product => Number(product.stock || 0) <= 5).length;
+  const totalStockValue = currentData.products.reduce((sum, product) => {
+    return sum + (Number(product.stock || 0) * Number(product.price || 0) * Number(currentData.exchangeRate || 655));
+  }, 0);
+
+  if (totalProductsEl) totalProductsEl.textContent = currentData.products.length;
+  if (lowStockEl) lowStockEl.textContent = lowStockCount;
+  if (stockValueEl) stockValueEl.textContent = formatFCFA(totalStockValue);
+
   tbody.innerHTML = currentData.products.map(product => {
     const stock = Number(product.stock || 0);
     const price = Number(product.price || 0) * Number(currentData.exchangeRate || 655);
@@ -651,11 +727,18 @@ async function updateProductStock(id, value) {
 
 async function loadSupportTickets() {
   const tbody = document.getElementById('supportTableBody');
+  const searchTerm = document.getElementById('supportSearch').value.toLowerCase();
+  const statusFilter = document.getElementById('supportStatusFilter')?.value || 'all';
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Chargement...</td></tr>';
   try {
     const snapshot = await db.collection('supportTickets').orderBy('timestamp', 'desc').get();
-    const tickets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    let tickets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    tickets = tickets.filter(ticket => {
+      const matchesSearch = !searchTerm || [ticket.name, ticket.whatsapp, ticket.subject, ticket.message].some(field => String(field || '').toLowerCase().includes(searchTerm));
+      const matchesStatus = statusFilter === 'all' || String(ticket.status).toLowerCase() === String(statusFilter).toLowerCase();
+      return matchesSearch && matchesStatus;
+    });
     if (!tickets.length) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Aucun ticket trouvé.</td></tr>';
       return;
@@ -742,42 +825,84 @@ async function loadReports() {
   const totalOrdersEl = document.getElementById('reportTotalOrders');
   const avgOrderEl = document.getElementById('reportAvgOrder');
   const topProductEl = document.getElementById('reportTopProduct');
-  const tbody = document.getElementById('reportsTopProductsBody');
-  if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="3" style="text-align:center">Chargement...</td></tr>';
+  const topProductsBody = document.getElementById('reportsTopProductsBody');
+  const topCategoriesBody = document.getElementById('reportsTopCategoriesBody');
+  if (!topProductsBody || !topCategoriesBody) return;
+  topProductsBody.innerHTML = '<tr><td colspan="3" style="text-align:center">Chargement...</td></tr>';
+  topCategoriesBody.innerHTML = '<tr><td colspan="3" style="text-align:center">Chargement...</td></tr>';
   try {
     const snapshot = await db.collection('orders').orderBy('timestamp', 'desc').get();
-    const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    let orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const fromValue = document.getElementById('reportsFromDate').value;
+    const toValue = document.getElementById('reportsToDate').value;
+    const fromDate = fromValue ? new Date(fromValue) : null;
+    const toDate = toValue ? new Date(toValue) : null;
+    if (fromDate && !isNaN(fromDate)) fromDate.setHours(0,0,0,0);
+    if (toDate && !isNaN(toDate)) toDate.setHours(23,59,59,999);
+    orders = orders.filter(order => {
+      if (!order.timestamp) return false;
+      const date = order.timestamp.toDate();
+      if (fromDate && !isNaN(fromDate) && date < fromDate) return false;
+      if (toDate && !isNaN(toDate) && date > toDate) return false;
+      return true;
+    });
+
     const totalRevenue = orders.reduce((sum, order) => sum + (Number(order.total) || 0), 0);
     const totalOrders = orders.length;
     const avgOrder = totalOrders ? totalRevenue / totalOrders : 0;
     const productSales = {};
+    const categorySales = {};
+
     orders.forEach(order => {
       (order.items || []).forEach(item => {
-        const key = item.name || 'Produit inconnu';
-        if (!productSales[key]) productSales[key] = { qty: 0, total: 0 };
-        productSales[key].qty += Number(item.qty) || 0;
-        productSales[key].total += (Number(item.price) || 0) * (Number(item.qty) || 0);
+        const productName = item.name || 'Produit inconnu';
+        const categoryName = item.category || 'Non renseigné';
+        const qty = Number(item.qty) || 0;
+        const total = (Number(item.price) || 0) * qty;
+
+        if (!productSales[productName]) productSales[productName] = { qty: 0, total: 0 };
+        productSales[productName].qty += qty;
+        productSales[productName].total += total;
+
+        if (!categorySales[categoryName]) categorySales[categoryName] = { qty: 0, total: 0 };
+        categorySales[categoryName].qty += qty;
+        categorySales[categoryName].total += total;
       });
     });
+
     const topProducts = Object.entries(productSales)
       .map(([name, data]) => ({ name, qty: data.qty, total: data.total }))
       .sort((a, b) => b.qty - a.qty)
       .slice(0, 5);
+    const topCategories = Object.entries(categorySales)
+      .map(([name, data]) => ({ name, qty: data.qty, total: data.total }))
+      .sort((a, b) => b.qty - a.qty)
+      .slice(0, 5);
+
     if (totalRevenueEl) totalRevenueEl.textContent = formatFCFA(totalRevenue);
     if (totalOrdersEl) totalOrdersEl.textContent = totalOrders;
     if (avgOrderEl) avgOrderEl.textContent = formatFCFA(avgOrder);
-    if (topProductEl) topProductEl.textContent = topProducts[0] ? `${topProducts[0].name}` : '—';
-    tbody.innerHTML = topProducts.length ? topProducts.map(product => `
+    if (topProductEl) topProductEl.textContent = topProducts[0] ? topProducts[0].name : '—';
+
+    topProductsBody.innerHTML = topProducts.length ? topProducts.map(product => `
       <tr>
         <td>${product.name}</td>
         <td>${product.qty}</td>
         <td>${formatFCFA(product.total)}</td>
       </tr>`).join('') : '<tr><td colspan="3" style="text-align:center">Aucun produit vendu.</td></tr>';
+
+    topCategoriesBody.innerHTML = topCategories.length ? topCategories.map(category => `
+      <tr>
+        <td>${category.name}</td>
+        <td>${category.qty}</td>
+        <td>${formatFCFA(category.total)}</td>
+      </tr>`).join('') : '<tr><td colspan="3" style="text-align:center">Aucune catégorie vendue.</td></tr>';
+
     renderReportsChart(topProducts);
   } catch (e) {
     console.error('Erreur chargement rapports:', e);
-    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center">Erreur de chargement.</td></tr>';
+    topProductsBody.innerHTML = '<tr><td colspan="3" style="text-align:center">Erreur de chargement.</td></tr>';
+    topCategoriesBody.innerHTML = '<tr><td colspan="3" style="text-align:center">Erreur de chargement.</td></tr>';
   }
 }
 
@@ -826,13 +951,47 @@ function exportReport() {
   link.click();
 }
 
+function exportOrders() {
+  const rows = [['Date', 'Client', 'Montant', 'Statut', 'Produits']];
+  const orders = window.currentOrders || [];
+  if (!orders.length) {
+    showToast('⚠️ Aucun ordre à exporter', 'error');
+    return;
+  }
+  orders.forEach(order => {
+    const date = order.timestamp ? order.timestamp.toDate().toLocaleDateString('fr-FR') : '—';
+    rows.push([
+      date,
+      `${order.customer.firstName || ''} ${order.customer.name || ''}`.trim(),
+      formatFCFA(order.total),
+      order.status || '—',
+      (order.items || []).map(i => `${i.qty}x ${i.name}`).join(' | ')
+    ]);
+  });
+  const csvContent = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `commandes-${new Date().toISOString().slice(0,10)}.csv`;
+  link.click();
+}
+
 async function loadPromotions() {
   const tbody = document.getElementById('promotionsTableBody');
+  const searchTerm = document.getElementById('promoSearch')?.value.toLowerCase();
+  const statusFilter = document.getElementById('promoFilter')?.value || 'all';
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Chargement...</td></tr>';
   try {
     const snapshot = await db.collection('promotions').orderBy('createdAt', 'desc').get();
-    const promotions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    let promotions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    promotions = promotions.filter(promo => {
+      const matchesSearch = !searchTerm || [promo.code, promo.description].some(field => String(field || '').toLowerCase().includes(searchTerm));
+      const isExpired = promo.expiresAt ? promo.expiresAt.toDate() < new Date() : false;
+      const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' && promo.active) || (statusFilter === 'expired' && isExpired);
+      return matchesSearch && matchesStatus;
+    });
     if (!promotions.length) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Aucune promotion.</td></tr>';
       return;
