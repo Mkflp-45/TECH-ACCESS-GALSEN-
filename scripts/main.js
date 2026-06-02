@@ -168,6 +168,19 @@ function toggleCart() {
   document.getElementById('cartPanel').classList.toggle('open', cartOpen);
 }
 
+function redirectToWave(paymentUrl) {
+  // Crée un lien invisible et le déclenche programmatiquement
+  // Cela respecte la politique des navigateurs mobiles (user-initiated navigation)
+  const a = document.createElement('a');
+  a.href = paymentUrl;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
 function getWavePaymentUrl(total, orderId = '') {
   const base = adminData.wavePaymentLink || 'https://pay.wave.com/m/M_sn_Bg4an4f38jXi/c/sn/';
   try {
@@ -283,11 +296,24 @@ async function submitCustomerForm(event) {
     return;
   }
 
+  // Validation du numéro WhatsApp
+  const phoneRegex = /^(\+?221)?\s?[7][0-9]{8}$/;
+  if (!phoneRegex.test(whatsapp.replace(/\s/g, ''))) {
+    showToast('❌ Numéro WhatsApp invalide (ex: +221 77 000 0000)');
+    return;
+  }
+
   const btn = event.submitter;
   if (btn) btn.disabled = true;
-  showToast('⌛ Traitement de la commande...');
 
   const orderToken = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
+  const paymentUrl = getWavePaymentUrl(total, orderToken);
+
+  // ÉTAPE 1 : Ouvrir Wave IMMÉDIATEMENT (user-initiated)
+  redirectToWave(paymentUrl);
+
+  showToast('⌛ Enregistrement de la commande...');
+
   const orderData = {
     customer: {
       name,
@@ -308,12 +334,14 @@ async function submitCustomerForm(event) {
   };
 
   try {
-    const docRef = await db.collection('orders').add(orderData);
-    const orderId = docRef.id;
+    await db.collection('orders').add(orderData);
     showToast('✅ Commande enregistrée !');
     closeCustomerModal();
-    const paymentUrl = getWavePaymentUrl(total, orderId);
-    setTimeout(() => { window.location.href = paymentUrl; }, 1500);
+
+    // Nettoyage du panier
+    cart = [];
+    updateCart();
+    if (cartOpen) toggleCart();
   } catch (error) {
     console.error("Erreur commande:", error);
     showToast('❌ Erreur lors de l\'enregistrement');
@@ -394,8 +422,8 @@ function renderCategories() {
     const count = adminData.products.filter(p => p.category != null && String(p.category).trim() === String(catId).trim()).length;
     const bgStyle = `background-image: url('${backgroundImage}'); background-size: cover; background-position: center;`;
     return `
-      <a class="cat-card" href="#category-${categorySlug}" onclick="scrollToCategory('${categorySlug}'); return false;" style="${bgStyle}" draggable="false">
-        <div class="cat-overlay" style="pointer-events: none; background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 60%);">
+      <a class="cat-card" href="#category-${categorySlug}" onclick="scrollToCategory('${categorySlug}'); return false;" style="${bgStyle}" draggable="false" ondragstart="return false;">
+        <div class="cat-overlay" style="pointer-events: none; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 70%);">
           <span class="cat-name">${catName}</span>
           <span class="cat-count">${count} produits</span>
         </div>
@@ -549,13 +577,13 @@ function renderProducts() {
       const productHTML = catProducts.map(product => {
         const priceFCFA = Math.round(Number(product.price) * (adminData.exchangeRate || 655));
         return `
-          <div class="product-card" style="user-select: none; -webkit-user-select: none; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer;" draggable="false">
-            <div class="product-img" style="font-size: 0; pointer-events: none;">
-              ${product.image ? `<img src="${product.image}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" draggable="false">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
+          <div class="product-card" style="user-select: none; -webkit-user-select: none; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer;" draggable="false" ondragstart="return false;">
+            <div class="product-img" style="font-size: 0; pointer-events: none; -webkit-user-drag: none;">
+              ${product.image ? `<img src="${product.image}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" draggable="false" ondragstart="return false;">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
               ${product.badge ? `<div class="product-badge ${product.badge.toLowerCase().includes('nouveau') ? 'new' : ''}" style="text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">${product.badge}</div>` : ''}
             </div>
             <div class="product-info" style="pointer-events: none;">
-              <div class="stars" style="color: #ffb400; letter-spacing: 2px; margin-bottom: 4px;">★★★★★</div>
+              <div class="stars" style="color: #ffb400; letter-spacing: 2px; margin-bottom: 6px;">★★★★★</div>
               <div class="product-name" style="font-weight: 700; font-size: 1.05rem; margin-bottom: 4px;">${product.name}</div>
               <div class="product-desc" style="opacity: 0.7; font-size: 0.85rem; line-height: 1.3;">${product.desc || ''}</div>
               <div class="product-bottom" style="pointer-events: auto;">
@@ -592,7 +620,7 @@ function renderProducts() {
             return `
               <div class="product-card" style="user-select: none; -webkit-user-select: none; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer;" draggable="false">
                 <div class="product-img" style="font-size: 0; pointer-events: none;">
-                  ${product.image ? `<img src="${product.image}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" draggable="false">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
+                  ${product.image ? `<img src="${product.image}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" draggable="false">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
                 </div>
                 <div class="product-info" style="pointer-events: none;">
                   <div class="stars" style="color: #ffb400; letter-spacing: 2px; margin-bottom: 4px;">★★★★★</div>

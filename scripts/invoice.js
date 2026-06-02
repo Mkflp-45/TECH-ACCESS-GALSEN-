@@ -78,7 +78,7 @@ async function loadInvoice() {
     document.getElementById('invStatus').textContent = order.status || 'En attente';
     document.getElementById('invPaymentMethod').textContent = order.paymentMethod ? order.paymentMethod : 'Non précisé';
     document.getElementById('itemsBody').innerHTML = order.items.map(item => `
-      <tr style="border-bottom: 1px solid #eee;"><td style="padding: 12px 8px; font-weight: 600;">${item.name}</td><td>${item.qty}</td><td>${item.price.toLocaleString()} FCFA</td><td style="font-weight: 700;">${(item.price * item.qty).toLocaleString()} FCFA</td></tr>
+      <tr style="border-bottom: 1px solid #eee;"><td style="padding: 14px 8px; font-weight: 600; color: #111;">${item.name}</td><td style="text-align:center;">${item.qty}</td><td>${item.price.toLocaleString()} FCFA</td><td style="font-weight: 700; color: #0D47A1; text-align:right;">${(item.price * item.qty).toLocaleString()} FCFA</td></tr>
     `).join('');
     document.getElementById('grandTotal').textContent = order.total.toLocaleString() + ' FCFA';
   } catch (e) {

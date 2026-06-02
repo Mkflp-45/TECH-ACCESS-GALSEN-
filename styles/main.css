@@ -1247,10 +1247,13 @@ footer {
 .btn-cancel:hover { border-color: var(--white); }
 
 .btn-pay {
-  background: var(--accent);
+  background: #1DC45A;
   color: var(--white);
 }
-.btn-pay:hover { background: #e03d10; }
+.btn-pay:hover {
+  background: #17a84d;
+  transform: translateY(-1px);
+}
 
 .order-total-display {
   background: rgba(30, 136, 229, 0.1);
@@ -1440,6 +1443,21 @@ footer {
   .cart-btn { font-size: 0.6rem; }
   .hero-tag { font-size: 0.6rem; padding: 4px 10px; }
   .btn-primary, .btn-secondary { font-size: 0.65rem; }
+}
+
+@media (max-width: 400px) {
+  .customer-modal {
+    padding: 20px 16px;
+    border-radius: 20px 20px 0 0;
+    max-height: 90vh;
+    overflow-y: auto;
+    width: 100%;
+    max-width: 100%;
+  }
+  .customer-modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
 }
 
 @media (max-width: 360px) {

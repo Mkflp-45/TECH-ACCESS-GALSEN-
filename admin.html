@@ -14,6 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth-compat.js"></script>
 <script src="firebase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="scripts/admin.js?v=admin-scroll-2" defer></script>
 
 </head>
@@ -54,6 +55,7 @@
         <button class="sidebar-btn" onclick="switchPanel('products', this)">📦 Produits</button>
         <button class="sidebar-btn" onclick="switchPanel('categories', this)">🏷️ Catégories</button>
         <button class="sidebar-btn" onclick="switchPanel('sales', this)">💰 Ventes</button>
+        <button class="sidebar-btn" onclick="switchPanel('finance', this)">💼 Finances</button>
         <button class="sidebar-btn" onclick="switchPanel('ticker', this)">📢 Ticker</button>
       </div>
       <div class="sidebar-section">
@@ -81,7 +83,12 @@
             <div class="stat-value" id="statExchange">655</div>
             <div class="stat-label">Taux EUR→FCFA</div>
           </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statRevenue">0 FCFA</div>
+            <div class="stat-label">Revenu Total</div>
+          </div>
         </div>
+        <div class="chart-container"><canvas id="salesChart"></canvas></div>
       </div>
       
       <!-- PRODUCTS -->
@@ -143,6 +150,192 @@
               </tr>
             </thead>
             <tbody id="salesTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- FINANCES -->
+      <div class="panel" id="finance">
+        <div class="section-title">FINANCES & ACHATS</div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="financeTotalSales">0 FCFA</div>
+            <div class="stat-label">Ventes totales</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="financeTotalOrders">0</div>
+            <div class="stat-label">Commandes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="financeTotalPurchases">0 FCFA</div>
+            <div class="stat-label">Achats / Dépenses</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="financeProfit">0 FCFA</div>
+            <div class="stat-label">Bénéfice net</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Enregistrer un achat / dépense</label>
+          <div class="form-row">
+            <input type="text" id="purchaseVendor" placeholder="Fournisseur / Boutique">
+            <input type="number" id="purchaseAmount" placeholder="Montant FCFA">
+          </div>
+          <div class="form-row">
+            <input type="text" id="purchaseCategory" placeholder="Catégorie (Stock, Livraison...)">
+            <input type="text" id="purchaseDescription" placeholder="Description">
+          </div>
+          <button class="btn-primary" onclick="savePurchase()">💾 Ajouter achat</button>
+        </div>
+
+        <div class="chart-container" style="margin-top: 20px;">
+          <canvas id="financeChart"></canvas>
+        </div>
+
+        <div class="section-title" style="margin-top: 30px;">Achats récents</div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Fournisseur</th>
+                <th>Catégorie</th>
+                <th>Montant</th>
+                <th>Description</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="financePurchasesBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- INVENTORY -->
+      <div class="panel" id="inventory">
+        <div class="section-title">INVENTAIRE</div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Produit</th>
+                <th>Stock</th>
+                <th>Prix</th>
+                <th>Catégorie</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SUPPORT -->
+      <div class="panel" id="support">
+        <div class="section-title">SUPPORT CLIENT</div>
+        <div class="form-group">
+          <label>Nouveau ticket de support</label>
+          <div class="form-row">
+            <input type="text" id="supportName" placeholder="Nom du client">
+            <input type="tel" id="supportWhatsApp" placeholder="WhatsApp">
+          </div>
+          <div class="form-row">
+            <input type="text" id="supportSubject" placeholder="Sujet">
+          </div>
+          <div class="form-group">
+            <textarea id="supportMessage" placeholder="Message / problème..."></textarea>
+          </div>
+          <button class="btn-primary" onclick="saveSupportTicket()">📩 Créer un ticket</button>
+        </div>
+        <div class="section-title" style="margin-top: 30px;">Tickets récents</div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>WhatsApp</th>
+                <th>Sujet</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="supportTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- REPORTS -->
+      <div class="panel" id="reports">
+        <div class="section-title">RAPPORTS</div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="reportTotalRevenue">0 FCFA</div>
+            <div class="stat-label">Revenu total</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="reportTotalOrders">0</div>
+            <div class="stat-label">Commandes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="reportAvgOrder">0 FCFA</div>
+            <div class="stat-label">Ticket moyen</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="reportTopProduct">—</div>
+            <div class="stat-label">Produit top vente</div>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="reportsChart"></canvas>
+        </div>
+        <div class="section-title" style="margin-top: 30px;">Top produits</div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Produit</th>
+                <th>Ventes</th>
+                <th>Montant total</th>
+              </tr>
+            </thead>
+            <tbody id="reportsTopProductsBody"></tbody>
+          </table>
+        </div>
+        <button class="btn-secondary" onclick="exportReport()">📥 Exporter le rapport</button>
+      </div>
+
+      <!-- PROMOTIONS -->
+      <div class="panel" id="promotions">
+        <div class="section-title">PROMOTIONS</div>
+        <div class="form-group">
+          <label>Créer une promotion</label>
+          <div class="form-row">
+            <input type="text" id="promoCode" placeholder="Code promo">
+            <input type="number" id="promoDiscount" placeholder="Remise %">
+          </div>
+          <div class="form-row">
+            <input type="text" id="promoDescription" placeholder="Description">
+            <input type="date" id="promoExpiry">
+          </div>
+          <label style="margin-bottom: 10px; display: block;"><input type="checkbox" id="promoActive" checked> Actif</label>
+          <button class="btn-primary" onclick="savePromotion()">🏷️ Enregistrer une promo</button>
+        </div>
+        <div class="section-title" style="margin-top: 30px;">Promotions actives</div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Remise</th>
+                <th>Description</th>
+                <th>Expire le</th>
+                <th>Actif</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="promotionsTableBody"></tbody>
           </table>
         </div>
       </div>
@@ -262,6 +455,10 @@
       <div class="form-group">
         <label>Prix (FCFA)</label>
         <input type="number" id="productPrice" placeholder="40000">
+      </div>
+      <div class="form-group">
+        <label>Stock disponible</label>
+        <input type="number" id="productStock" placeholder="0" value="0">
       </div>
     </div>
     
