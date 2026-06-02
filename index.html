@@ -46,6 +46,7 @@
 <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script src="scripts/main.js?v=mobilefix-1" defer></script>
+<script src="scripts/main-additions.js?v=features-1" defer></script>
 </head>
 <body>
 <main class="page-shell">
@@ -133,6 +134,26 @@
   <div id="productsContainer"></div>
 </section>
 
+<!-- BEST SELLERS SECTION -->
+
+<section id="bestsellers" style="margin-top: 80px; padding: 60px 40px; background: rgba(30, 136, 229, 0.05);">
+  <div class="reveal">
+    <span class="section-label">// Top ventes</span>
+    <h2 class="section-title">NOS MEILLEURES VENTES</h2>
+  </div>
+  <div id="bestSellersContainer" class="products-grid reveal"></div>
+</section>
+
+<!-- FAQ SECTION -->
+
+<section id="faq" style="margin-top: 60px; padding: 60px 40px; max-width: 1200px; margin-left: auto; margin-right: auto;">
+  <div class="reveal">
+    <span class="section-label">// Questions fréquentes</span>
+    <h2 class="section-title">FAQ — NOUS AVONS LES RÉPONSES</h2>
+  </div>
+  <div id="faqContainer" class="faq-grid reveal" style="margin-top: 40px;"></div>
+</section>
+
 <!-- PROMO BANNER -->
 
 <div class="promo-banner reveal" id="promo">
@@ -184,7 +205,7 @@
     <div>
       <div class="footer-heading">Support</div>
       <ul class="footer-links">
-        <li><a href="#">FAQ</a></li>
+        <li><a href="#faq">FAQ</a></li>
         <li><a href="#">Livraison</a></li>
         <li><a href="#">Retours</a></li>
         <li><a href="#">Contact</a></li>
@@ -200,6 +221,36 @@
       </ul>
     </div>
   </div>
+
+  <!-- PAYMENT METHODS SECTION -->
+  <div class="footer-payments" style="margin: 40px 0; padding: 30px 0; border-top: 1px solid rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1);">
+    <div class="payment-methods-title" style="text-align: center; margin-bottom: 24px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; color: #1E88E5;">Moyens de paiement acceptés</div>
+    <div class="payment-logos" style="display: flex; justify-content: center; align-items: center; gap: 40px; flex-wrap: wrap;">
+      <!-- Wave Logo (Circular) -->
+      <div class="payment-method-item" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div class="payment-logo-circle" style="width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, #2a9f5f 0%, #1a7f3f 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(42, 159, 95, 0.3); position: relative; overflow: hidden;">
+          <svg style="width: 70px; height: 70px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="100" cy="100" r="95" fill="white" opacity="0.95"/>
+            <text x="100" y="115" font-size="60" font-weight="bold" fill="#2a9f5f" text-anchor="middle" font-family="Arial">W</text>
+          </svg>
+        </div>
+        <span style="font-size: 0.8rem; color: #aaa; font-weight: 500;">WAVE</span>
+      </div>
+      <!-- Card Payment -->
+      <div class="payment-method-item" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div class="payment-card-icon" style="width: 120px; height: 75px; border-radius: 12px; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(30, 136, 229, 0.2); position: relative; border: 2px solid rgba(30, 136, 229, 0.4);">
+          <svg style="width: 60px; height: 60px;" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="4" width="20" height="16" rx="2" stroke="#1E88E5" stroke-width="2" fill="none"/>
+            <line x1="2" y1="8" x2="22" y2="8" stroke="#1E88E5" stroke-width="2"/>
+            <circle cx="6" cy="15" r="1.5" fill="#1E88E5"/>
+            <line x1="9" y1="15" x2="15" y2="15" stroke="#1E88E5" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <span style="font-size: 0.8rem; color: #aaa; font-weight: 500;">CARTE BANCAIRE</span>
+      </div>
+    </div>
+  </div>
+
   <div class="footer-bottom">
     <span>© 2026 TECH ACCESS — Tous droits réservés</span>
     <span>MADE WITH 🔧 FOR YOUR TECH</span>
@@ -222,6 +273,10 @@
     </div>
   </div>
   <div class="cart-footer" id="cartFooter" style="display:none">
+    <div class="promo-code-input">
+      <input type="text" id="promoCodeInput" placeholder="Code promo..." style="flex:1;">
+      <button class="promo-code-btn" onclick="applyPromoCode(document.getElementById('promoCodeInput').value); document.getElementById('promoCodeInput').value = '';">Appliquer</button>
+    </div>
     <div class="cart-total">
       <span>Total</span>
       <span id="cartTotal">0,00€</span>

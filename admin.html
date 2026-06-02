@@ -16,6 +16,7 @@
 <script src="firebase-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="scripts/admin.js?v=admin-scroll-2" defer></script>
+<script src="scripts/admin-additions.js?v=admin-features-1" defer></script>
 
 </head>
 <body>
@@ -96,6 +97,27 @@
             <div class="stat-label">Revenu Total</div>
           </div>
         </div>
+
+        <div class="section-title" style="margin-top: 30px;">KPIs AVANCÉS</div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="dashboardConversionRate">0%</div>
+            <div class="stat-label">Taux conversion</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="dashboardRevenueTrend">+0%</div>
+            <div class="stat-label">Tendance revenu</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="dashboardUniqueCustomers">0</div>
+            <div class="stat-label">Clients uniques</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="dashboardReturningCustomers">0</div>
+            <div class="stat-label">Clients récurrents</div>
+          </div>
+        </div>
+        
         <div class="chart-container"><canvas id="salesChart"></canvas></div>
       </div>
       

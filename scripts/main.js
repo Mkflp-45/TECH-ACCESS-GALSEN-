@@ -208,7 +208,14 @@ function updateCart() {
   const count = cart.reduce((a, i) => a + i.qty, 0);
   document.getElementById('cartCount').textContent = count;
 
-  const total = cart.reduce((a, i) => a + i.price * i.qty, 0);
+  // Utiliser getCartTotal si elle existe (avec codes promo), sinon calcul classique
+  let total = cart.reduce((a, i) => a + i.price * i.qty, 0);
+  if (window.getCartTotal && typeof getCartTotal === 'function') {
+    total = getCartTotal();
+  } else if (window.appliedPromo && appliedPromo) {
+    total = total * (1 - appliedPromo.discount / 100);
+  }
+  
   const totalFCFA = (total * adminData.exchangeRate).toFixed(0);
   document.getElementById('cartTotal').textContent = totalFCFA + ' FCFA';
 
