@@ -185,12 +185,22 @@
   <div class="footer-grid">
     <div>
       <a href="#" class="footer-logo">TECH <span>ACCESS</span></a>
-      <p class="footer-desc">La tech accessible à tous. Chez TECH ACCESS, nous proposons les meilleures accessoires technologiques à Dakar plateau avec service professionnel et support 7j/7.</p>
+      <p class="footer-desc">TECH ACCESS assure une livraison rapide au Sénégal, avec support client disponible 7j/7 et options de paiement fiables.</p>
       <div class="footer-contact" style="margin-top:20px; font-size:0.9rem;">
         <p><strong>📍 Adresse :</strong> Dakar Plateau</p>
         <p><strong>📞 Téléphones :</strong></p>
         <p style="margin: 5px 0;">+221 77 363 15 95</p>
         <p style="margin: 5px 0;">+221 76 864 55 05</p>
+      </div>
+      <div class="footer-delivery">
+        <p><strong>Conditions de livraison</strong></p>
+        <ul>
+          <li>Livraison express : moins de 12h à Dakar, 12h à 48h dans le reste du Sénégal.</li>
+          <li>Zone 1 — Dakar centre : 2 000 FCFA.</li>
+          <li>Zone 2 — Pikine, Thiaroye, Guédiawaye : 2 500 FCFA.</li>
+          <li>Zone 3 — Mbao, Yeumbeul, Rufisque, Keur Massar, Malika, Niaga, Boun, Tivaouane Peulh : 3 000 FCFA.</li>
+          <li>Livraison gratuite à Dakar pour toute commande à partir de 15 000 FCFA.</li>
+        </ul>
       </div>
     </div>
     <div>
@@ -229,24 +239,20 @@
       <!-- Wave Logo (Circular) -->
       <div class="payment-method-item" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
         <div class="payment-logo-circle" style="width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, #2a9f5f 0%, #1a7f3f 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(42, 159, 95, 0.3); position: relative; overflow: hidden;">
-          <svg style="width: 70px; height: 70px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="100" cy="100" r="95" fill="white" opacity="0.95"/>
-            <text x="100" y="115" font-size="60" font-weight="bold" fill="#2a9f5f" text-anchor="middle" font-family="Arial">W</text>
-          </svg>
+          <img src="assets/wave-footer-logo.svg" alt="Wave" loading="lazy" decoding="async" width="70" height="70" style="width: 70px; height: 70px; object-fit: contain;" />
         </div>
         <span style="font-size: 0.8rem; color: #aaa; font-weight: 500;">WAVE</span>
       </div>
-      <!-- Card Payment -->
+      <!-- Cash Payment -->
       <div class="payment-method-item" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
-        <div class="payment-card-icon" style="width: 120px; height: 75px; border-radius: 12px; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(30, 136, 229, 0.2); position: relative; border: 2px solid rgba(30, 136, 229, 0.4);">
-          <svg style="width: 60px; height: 60px;" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="2" y="4" width="20" height="16" rx="2" stroke="#1E88E5" stroke-width="2" fill="none"/>
-            <line x1="2" y1="8" x2="22" y2="8" stroke="#1E88E5" stroke-width="2"/>
-            <circle cx="6" cy="15" r="1.5" fill="#1E88E5"/>
-            <line x1="9" y1="15" x2="15" y2="15" stroke="#1E88E5" stroke-width="1.5"/>
+        <div class="payment-cash-icon" style="width: 120px; height: 75px; border-radius: 16px; background: linear-gradient(135deg, #3e4c2b 0%, #283712 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(74, 95, 48, 0.25); position: relative; border: 2px solid rgba(74, 95, 48, 0.4);">
+          <svg style="width: 56px; height: 56px;" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="7" width="20" height="10" rx="2" fill="#F5F5F5" stroke="#B2B76F" stroke-width="1.5"/>
+            <circle cx="12" cy="12" r="3" fill="#B2B76F"/>
+            <path d="M6 11H18" stroke="#4F652A" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
         </div>
-        <span style="font-size: 0.8rem; color: #aaa; font-weight: 500;">CARTE BANCAIRE</span>
+        <span style="font-size: 0.8rem; color: #aaa; font-weight: 500;">ESPÈCES</span>
       </div>
     </div>
   </div>
@@ -284,7 +290,7 @@
     <div class="payment-methods">
       <div class="payment-title">Mode de paiement</div>
       <label><input type="radio" name="paymentMethod" value="wave" checked> Wave</label>
-      <label><input type="radio" name="paymentMethod" value="card"> Carte bancaire</label>
+      <label><input type="radio" name="paymentMethod" value="cash"> Espèces</label>
     </div>
     <button type="button" class="checkout-btn" onclick="checkout()">Commander →</button>
     <div class="cart-message" id="cartMessage"></div>
@@ -319,12 +325,27 @@
 
       <div class="customer-form-group">
         <label>Quartier / Localité</label>
-        <input type="text" id="customerQuartier" placeholder="Ex: Plateau, Sacré-Cœur" required>
+        <select id="customerQuartier" required>
+          <option value="" disabled selected>Sélectionner votre quartier</option>
+          <option value="Dakar centre">Dakar centre (Zone 1)</option>
+          <option value="Pikine">Pikine (Zone 2)</option>
+          <option value="Thiaroye">Thiaroye (Zone 2)</option>
+          <option value="Guédiawaye">Guédiawaye (Zone 2)</option>
+          <option value="Mbao">Mbao (Zone 3)</option>
+          <option value="Yeumbeul">Yeumbeul (Zone 3)</option>
+          <option value="Rufisque">Rufisque (Zone 3)</option>
+          <option value="Keur Massar">Keur Massar (Zone 3)</option>
+          <option value="Malika">Malika (Zone 3)</option>
+          <option value="Niaga">Niaga (Zone 3)</option>
+          <option value="Boun">Boun (Zone 3)</option>
+          <option value="Tivaouane Peulh">Tivaouane Peulh (Zone 3)</option>
+          <option value="Autre région">Autre région</option>
+        </select>
       </div>
 
       <div class="customer-modal-footer">
         <button type="button" class="btn-cancel" onclick="closeCustomerModal()">Annuler</button>
-        <button type="submit" class="btn-pay">💸 Payer via Wave →</button>
+        <button type="submit" class="btn-pay">✅ Confirmer la commande</button>
       </div>
     </form>
   </div>

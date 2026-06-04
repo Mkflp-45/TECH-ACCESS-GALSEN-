@@ -981,6 +981,21 @@ footer {
 .footer-contact p { margin: 8px 0; font-size: 0.85rem; }
 .footer-contact strong { color: var(--accent); }
 
+.footer-delivery {
+  margin-top: 22px;
+  color: var(--mid);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.footer-delivery ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 10px 0 0;
+}
+.footer-delivery li {
+  margin-bottom: 8px;
+}
+
 .footer-heading {
   font-family: "Space Mono", monospace;
   font-size: 0.65rem;

@@ -28,7 +28,7 @@ let faqData = [
   { q: 'Y a-t-il une garantie ?', a: 'Tous nos produits sont garantis 2 ans. En cas de problème, contactez notre support 7j/7.' },
   { q: 'Puis-je annuler ou modifier ma commande ?', a: 'Oui, tant que la commande n\'est pas livrée. Contactez-nous rapidement via WhatsApp ou téléphone.' },
   { q: 'Quel est le délai de remboursement ?', a: 'Les remboursements sont traités dans les 7 jours ouvrables après le retour du produit.' },
-  { q: 'Acceptez-vous d\'autres moyens de paiement ?', a: 'Actuellement nous acceptons Wave et les cartes bancaires. D\'autres moyens seront bientôt disponibles.' }
+  { q: 'Acceptez-vous d\'autres moyens de paiement ?', a: 'Nous acceptons actuellement Wave et le paiement à la livraison en espèces.' }
 ];
 
 async function loadFAQFromFirestore() {
@@ -100,7 +100,7 @@ async function loadBestSellers() {
       return `
         <div class="product-card">
           <div class="product-img" style="position:relative; overflow:hidden;">
-            <img src="${p.image || p.icon}" alt="${p.name}" loading="lazy" style="width:100%; height:200px; object-fit:cover;">
+            <img src="${p.image || p.icon}" alt="${p.name}" loading="lazy" decoding="async" width="380" height="200" style="width:100%; height:200px; object-fit:cover;">
             <button class="wishlist-btn" data-product-id="${p.id}" onclick="event.stopPropagation(); toggleWishlist('${p.id}')">♡</button>
             ${stock <= 5 ? `<div class="stock-indicator low">⚠️ ${stock} restants</div>` : stock > 0 ? `<div class="stock-indicator available">✓ En stock</div>` : `<div class="stock-indicator">Rupture</div>`}
           </div>
@@ -172,9 +172,9 @@ function applyPromoCode(code) {
 function getCartTotal() {
   let total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
   if (appliedPromo) {
-    total = total * (1 - appliedPromo.discount / 100);
+    total *= 1 - appliedPromo.discount / 100;
   }
-  return total;
+  return total * (adminData.exchangeRate || 655);
 }
 
 // ==================== LAZY LOADING ====================

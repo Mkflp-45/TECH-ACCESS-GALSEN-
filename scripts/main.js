@@ -208,15 +208,8 @@ function updateCart() {
   const count = cart.reduce((a, i) => a + i.qty, 0);
   document.getElementById('cartCount').textContent = count;
 
-  // Utiliser getCartTotal si elle existe (avec codes promo), sinon calcul classique
-  let total = cart.reduce((a, i) => a + i.price * i.qty, 0);
-  if (window.getCartTotal && typeof getCartTotal === 'function') {
-    total = getCartTotal();
-  } else if (window.appliedPromo && appliedPromo) {
-    total = total * (1 - appliedPromo.discount / 100);
-  }
-  
-  const totalFCFA = (total * adminData.exchangeRate).toFixed(0);
+  const total = getCartTotal();
+  const totalFCFA = Number(total).toFixed(0);
   document.getElementById('cartTotal').textContent = totalFCFA + ' FCFA';
 
   const itemsEl = document.getElementById('cartItems');
@@ -231,7 +224,7 @@ function updateCart() {
       const itemTotalFCFA = (item.price * item.qty * adminData.exchangeRate).toFixed(0);
       return `
         <div class="cart-item">
-          <div class="cart-item-img">${item.image ? `<img src="${item.image}" style="width: 100%; height: 100%; object-fit: cover;">` : item.icon}</div>
+          <div class="cart-item-img">${item.image ? `<img src="${item.image}" loading="lazy" decoding="async" width="280" height="180" style="width: 100%; height: 100%; object-fit: cover;">` : item.icon}</div>
           <div class="cart-item-info">
             <div class="cart-item-name">${item.name}</div>
             <div class="cart-item-price">${itemTotalFCFA} FCFA</div>
@@ -262,12 +255,16 @@ function checkout() {
     return;
   }
 
+  const total = getCartTotal();
   const method = document.querySelector('input[name="paymentMethod"]:checked').value;
   if (method === 'wave') {
     processPayment();
+  } else if (method === 'cash') {
+    document.getElementById('cartMessage').textContent = '';
+    openCustomerModal(total);
   } else {
-    showToast('Mode de paiement carte sélectionné. Intégration à compléter.');
-    document.getElementById('cartMessage').textContent = 'Sélection de paiement carte bancaire détectée. Intégration côté serveur requise.';
+    showToast('Mode de paiement non pris en charge.');
+    document.getElementById('cartMessage').textContent = 'Veuillez sélectionner Wave ou espèces.';
   }
 }
 
@@ -314,10 +311,10 @@ async function submitCustomerForm(event) {
   if (btn) btn.disabled = true;
 
   const orderToken = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
-  const paymentUrl = getWavePaymentUrl(total, orderToken);
-
-  // ÉTAPE 1 : Ouvrir Wave IMMÉDIATEMENT (user-initiated)
-  redirectToWave(paymentUrl);
+  if (method === 'wave') {
+    const paymentUrl = getWavePaymentUrl(total, orderToken);
+    redirectToWave(paymentUrl);
+  }
 
   showToast('⌛ Enregistrement de la commande...');
 
@@ -334,8 +331,8 @@ async function submitCustomerForm(event) {
       qty: item.qty
     })),
     total: total,
-    paymentMethod: method,
-    status: method === 'wave' ? 'Payé' : 'En attente',
+    paymentMethod: method === 'cash' ? 'Espèces' : 'Wave',
+    status: method === 'wave' ? 'Payé' : 'En attente - paiement en espèces',
     orderToken,
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   };
@@ -586,7 +583,7 @@ function renderProducts() {
         return `
           <div class="product-card" style="user-select: none; -webkit-user-select: none; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer;" draggable="false" ondragstart="return false;">
             <div class="product-img" style="font-size: 0; pointer-events: none; -webkit-user-drag: none;">
-              ${product.image ? `<img src="${product.image}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" draggable="false" ondragstart="return false;">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
+              ${product.image ? `<img src="${product.image}" loading="lazy" decoding="async" width="400" height="280" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" draggable="false" ondragstart="return false;">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
               ${product.badge ? `<div class="product-badge ${product.badge.toLowerCase().includes('nouveau') ? 'new' : ''}" style="text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">${product.badge}</div>` : ''}
             </div>
             <div class="product-info" style="pointer-events: none;">
@@ -627,7 +624,7 @@ function renderProducts() {
             return `
               <div class="product-card" style="user-select: none; -webkit-user-select: none; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer;" draggable="false">
                 <div class="product-img" style="font-size: 0; pointer-events: none;">
-                  ${product.image ? `<img src="${product.image}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" draggable="false">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
+                  ${product.image ? `<img src="${product.image}" loading="lazy" decoding="async" width="400" height="280" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" draggable="false">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
                 </div>
                 <div class="product-info" style="pointer-events: none;">
                   <div class="stars" style="color: #ffb400; letter-spacing: 2px; margin-bottom: 4px;">★★★★★</div>
