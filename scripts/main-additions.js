@@ -21,53 +21,6 @@ function updateWishlistButtons() {
   });
 }
 
-// ==================== FAQ MANAGEMENT ====================
-let faqData = [
-  { q: 'Quels sont les délais de livraison ?', a: 'Nous livrons à Dakar Plateau généralement sous 24-48h. Livraison gratuite à partir de 50€.' },
-  { q: 'Comment tracker ma commande ?', a: 'Vous recevrez un message WhatsApp avec le numéro et l\'état de votre commande. Contactez-nous pour plus d\'infos.' },
-  { q: 'Y a-t-il une garantie ?', a: 'Tous nos produits sont garantis 2 ans. En cas de problème, contactez notre support 7j/7.' },
-  { q: 'Puis-je annuler ou modifier ma commande ?', a: 'Oui, tant que la commande n\'est pas livrée. Contactez-nous rapidement via WhatsApp ou téléphone.' },
-  { q: 'Quel est le délai de remboursement ?', a: 'Les remboursements sont traités dans les 7 jours ouvrables après le retour du produit.' },
-  { q: 'Acceptez-vous d\'autres moyens de paiement ?', a: 'Nous acceptons actuellement Wave et le paiement à la livraison en espèces.' }
-];
-
-async function loadFAQFromFirestore() {
-  try {
-    const snapshot = await db.collection('faq').get();
-    if (snapshot.empty) {
-      console.log('FAQ non trouvée dans Firestore, utilisation de la FAQ locale');
-      renderFAQ();
-    } else {
-      faqData = snapshot.docs.map(doc => ({
-        q: doc.data().question,
-        a: doc.data().answer
-      }));
-      renderFAQ();
-    }
-  } catch (e) {
-    console.warn('Erreur chargement FAQ:', e);
-    renderFAQ();
-  }
-}
-
-function renderFAQ() {
-  const container = document.getElementById('faqContainer');
-  if (!container) return;
-  container.innerHTML = faqData.map((item, idx) => `
-    <div class="faq-item" onclick="toggleFAQ(this)">
-      <div class="faq-question">
-        <span>${item.q}</span>
-        <span class="faq-toggle">▼</span>
-      </div>
-      <div class="faq-answer">${item.a}</div>
-    </div>
-  `).join('');
-}
-
-function toggleFAQ(element) {
-  element.classList.toggle('open');
-}
-
 // ==================== BEST SELLERS ====================
 async function loadBestSellers() {
   const container = document.getElementById('bestSellersContainer');
@@ -254,7 +207,6 @@ function openProductDetail(productId) {
 
 // ==================== INIT ALL FEATURES ====================
 function initializeAllFeatures() {
-  loadFAQFromFirestore();
   loadBestSellers();
   loadPromoCodesFromFirestore();
   loadCartFromLocalStorage();

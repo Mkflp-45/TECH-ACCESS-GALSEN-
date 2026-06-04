@@ -295,7 +295,7 @@ async function submitCustomerForm(event) {
   const total = getCartTotal();
   const method = document.querySelector('input[name="paymentMethod"]:checked').value;
 
-  if (!name || !firstName || !whatsapp || !quartier) {
+  if (!name || !firstName || !whatsapp || quartier.length < 2) {
     showToast('❌ Veuillez remplir tous les champs');
     return;
   }

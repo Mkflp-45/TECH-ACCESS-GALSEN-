@@ -140,11 +140,17 @@ nav {
   text-decoration: none;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 16px;
   z-index: 102;
 }
 .logo span { color: var(--accent); }
-.logo img { height: 40px; width: auto; }
+.logo img {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
 
 .nav-links {
   display: flex; gap: 36px;
@@ -968,7 +974,33 @@ footer {
   text-decoration: none;
   color: var(--white);
 }
+.footer-logo img {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  margin-bottom: 14px;
+}
 .footer-logo span { color: var(--accent); }
+
+.wave-circle,
+.cash-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wave-circle img,
+.cash-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 
 .footer-desc {
   font-size: 0.85rem;

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact - TECH ACCESS</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles/main.css">
+<style>
+  .page-container {
+    max-width: 900px;
+    margin: 60px auto;
+    padding: 40px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .page-header {
+    font-family: "Bebas Neue", sans-serif;
+    font-size: 3rem;
+    letter-spacing: 4px;
+    margin-bottom: 30px;
+    color: var(--white);
+  }
+  .page-content {
+    color: rgba(255,255,255,0.8);
+    line-height: 1.9;
+    font-size: 1.05rem;
+  }
+  .contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 30px;
+  }
+  .contact-card {
+    background: rgba(30, 136, 229, 0.1);
+    border: 1px solid rgba(30, 136, 229, 0.3);
+    border-radius: 16px;
+    padding: 24px;
+  }
+  .contact-card h3 {
+    color: var(--accent);
+    margin-top: 0;
+    margin-bottom: 12px;
+    font-size: 1.3rem;
+  }
+  .page-content h3 {
+    color: var(--accent);
+    margin-top: 24px;
+    margin-bottom: 12px;
+    font-size: 1.5rem;
+  }
+  .page-content ul {
+    margin-left: 24px;
+    margin-bottom: 16px;
+  }
+  .page-content li {
+    margin-bottom: 8px;
+  }
+  .back-btn {
+    display: inline-block;
+    margin-bottom: 30px;
+    padding: 12px 24px;
+    background: var(--accent);
+    color: var(--dark);
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+  .back-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(30, 136, 229, 0.4);
+  }
+  @media (max-width: 768px) {
+    .contact-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="page-container">
+    <a href="index.html" class="back-btn">← Retour</a>
+    
+    <h1 class="page-header">CONTACT</h1>
+    
+    <div class="page-content">
+      <p>Nous sommes disponibles 7j/7 pour répondre à vos questions, concerns et demandes. Contactez-nous par l'un des moyens ci-dessous.</p>
+      
+      <div class="contact-grid">
+        <div class="contact-card">
+          <h3>📞 Téléphone</h3>
+          <p>+221 77 363 15 95<br>+221 76 864 55 05</p>
+          <p style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">Disponible 7j/7, 8h-20h</p>
+        </div>
+        <div class="contact-card">
+          <h3>📍 Adresse</h3>
+          <p>Dakar Plateau<br>Sénégal</p>
+          <p style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">Localement à Dakar</p>
+        </div>
+      </div>
+      
+      <h3>Horaires d'ouverture</h3>
+      <ul>
+        <li><strong>Lundi-Vendredi :</strong> 8h00 - 18h00</li>
+        <li><strong>Samedi :</strong> 9h00 - 16h00</li>
+        <li><strong>Dimanche :</strong> 10h00 - 14h00</li>
+      </ul>
+      
+      <h3>Comment nous contacter</h3>
+      <ul>
+        <li><strong>Commandes :</strong> Appelez pour passer une commande ou modifier une commande en cours</li>
+        <li><strong>Livraison :</strong> Suivi en temps réel de votre colis et coordination</li>
+        <li><strong>Retours :</strong> Assistance pour les retours et remboursements</li>
+        <li><strong>Réclamations :</strong> Support pour tout problème de produit</li>
+      </ul>
+      
+      <h3>Support technique</h3>
+      <p>Pour un problème technique sur le site ou avec votre paiement Wave, appelez-nous. Nous vous aiderons rapidement.</p>
+      
+      <h3>Temps de réponse</h3>
+      <ul>
+        <li><strong>Téléphone :</strong> Immédiat pendant les heures d'ouverture</li>
+        <li><strong>Les demandes urgentes :</strong> Priorité absolue</li>
+      </ul>
+    </div>
+  </div>
+</main>
+</body>
+</html>
