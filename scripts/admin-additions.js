@@ -1,12 +1,19 @@
 // ==================== ADMIN ENHANCEMENTS ====================
 
+let adminLogsDisabled = false;
+
 // ==================== ACTIVITY LOGS ====================
 async function logAdminActivity(action, details = '') {
   try {
+    if (adminLogsDisabled) return;
+    if (!window.db || !window.auth) {
+      console.warn('Firebase not yet initialized for logging activity');
+      return;
+    }
     const user = firebase.auth().currentUser;
     if (!user) return;
     
-    await db.collection('adminLogs').add({
+    await window.db.collection('adminLogs').add({
       adminEmail: user.email,
       action: action,
       details: details,
@@ -14,14 +21,25 @@ async function logAdminActivity(action, details = '') {
       userAgent: navigator.userAgent
     });
   } catch (e) {
-    console.error('Erreur log activité:', e);
+    const message = String(e?.message || '');
+    if (message.includes('Missing or insufficient permissions')) {
+      adminLogsDisabled = true;
+      return;
+    }
+    if (!message.includes('Missing or insufficient permissions')) {
+      console.error('Erreur log activité:', e);
+    }
   }
 }
 
 // ==================== ADVANCED DASHBOARD KPIs ====================
 async function loadAdvancedDashboardKPIs() {
   try {
-    const ordersSnap = await db.collection('orders').get();
+    if (!window.db) {
+      console.warn('Firestore not yet initialized');
+      return;
+    }
+    const ordersSnap = await window.db.collection('orders').get();
     const orders = ordersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     
     // Conversion Rate
@@ -39,14 +57,21 @@ async function loadAdvancedDashboardKPIs() {
     const revenueTrend = yesterdayRevenue > 0 ? ((todayRevenue - yesterdayRevenue) / yesterdayRevenue * 100).toFixed(1) : '0';
     
     // Customer metrics
-    const uniqueCustomers = new Set(orders.map(o => o.customer?.whatsapp)).size;
-    const returningCustomers = orders.filter(o => orders.filter(o2 => o2.customer?.whatsapp === o.customer?.whatsapp).length > 1).length;
-    
-    // Display KPIs
-    document.getElementById('dashboardConversionRate').textContent = conversionRate + '%';
-    document.getElementById('dashboardRevenueTrend').textContent = revenueTrend + '%';
-    document.getElementById('dashboardUniqueCustomers').textContent = uniqueCustomers;
-    document.getElementById('dashboardReturningCustomers').textContent = returningCustomers;
+    const whatsapps = orders.map(o => o.customer?.whatsapp).filter(Boolean);
+    const uniqueCustomers = new Set(whatsapps).size;
+    const returningCustomers = whatsapps.reduce((acc, w, idx, arr) => {
+      return acc + (arr.indexOf(w) !== idx ? 1 : 0);
+    }, 0);
+
+    // Display KPIs (guard DOM elements)
+    const convEl = document.getElementById('dashboardConversionRate');
+    const revTrendEl = document.getElementById('dashboardRevenueTrend');
+    const uniqueEl = document.getElementById('dashboardUniqueCustomers');
+    const returningEl = document.getElementById('dashboardReturningCustomers');
+    if (convEl) convEl.textContent = conversionRate + '%';
+    if (revTrendEl) revTrendEl.textContent = revenueTrend + '%';
+    if (uniqueEl) uniqueEl.textContent = String(uniqueCustomers);
+    if (returningEl) returningEl.textContent = String(returningCustomers);
     
     logAdminActivity('VIEW_DASHBOARD', 'Dashboard KPIs viewed');
   } catch (e) {
@@ -56,7 +81,11 @@ async function loadAdvancedDashboardKPIs() {
 
 // ==================== REAL-TIME ORDER ALERTS ====================
 function initRealTimeOrderAlerts() {
-  db.collection('orders').orderBy('timestamp', 'desc').limit(1)
+  if (!window.db) {
+    console.warn('Firestore not yet initialized for order alerts');
+    return;
+  }
+  window.db.collection('orders').orderBy('timestamp', 'desc').limit(1)
     .onSnapshot(snapshot => {
       snapshot.docChanges().forEach(change => {
         if (change.type === 'added') {
@@ -114,7 +143,11 @@ function showNotification(title, message, type = 'info') {
 // ==================== CUSTOMER STATISTICS ====================
 async function loadCustomerStatistics() {
   try {
-    const ordersSnap = await db.collection('orders').get();
+    if (!window.db) {
+      console.warn('⚠️ Firestore not yet initialized for customer statistics');
+      return;
+    }
+    const ordersSnap = await window.db.collection('orders').get();
     const orders = ordersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     
     const customerMap = {};
@@ -147,7 +180,11 @@ async function loadCustomerStatistics() {
 // ==================== EXPORT PDF FACTURES ====================
 async function exportInvoicePDF(orderId) {
   try {
-    const orderDoc = await db.collection('orders').doc(orderId).get();
+    if (!window.db) {
+      showToast('❌ Firebase non initialisé', 'error');
+      return;
+    }
+    const orderDoc = await window.db.collection('orders').doc(orderId).get();
     if (!orderDoc.exists) {
       showToast('❌ Commande non trouvée', 'error');
       return;
@@ -283,7 +320,11 @@ function initCSVImport() {
     let saved = 0;
     for (const prod of products) {
       try {
-        await db.collection('products').add({
+        if (!window.db) {
+          console.error('❌ Firestore not initialized for product import');
+          break;
+        }
+        await window.db.collection('products').add({
           ...prod,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -305,8 +346,12 @@ function initCSVImport() {
 // ==================== PROMO SCHEDULING ====================
 async function scheduledPromoCheck() {
   try {
+    if (!window.db) {
+      console.warn('⚠️ Firestore not yet initialized for promo scheduling');
+      return;
+    }
     const now = new Date();
-    const promos = await db.collection('promotions').get();
+    const promos = await window.db.collection('promotions').get();
     
     promos.forEach(doc => {
       const promo = doc.data();
@@ -315,13 +360,13 @@ async function scheduledPromoCheck() {
       
       // Auto-activate
       if (startDate && startDate <= now && promo.active === false) {
-        db.collection('promotions').doc(doc.id).update({ active: true });
+        window.db.collection('promotions').doc(doc.id).update({ active: true });
         logAdminActivity('AUTO_PROMO_ACTIVATE', doc.id);
       }
       
       // Auto-deactivate
       if (endDate && endDate <= now && promo.active === true) {
-        db.collection('promotions').doc(doc.id).update({ active: false });
+        window.db.collection('promotions').doc(doc.id).update({ active: false });
         logAdminActivity('AUTO_PROMO_DEACTIVATE', doc.id);
       }
     });
@@ -333,7 +378,11 @@ async function scheduledPromoCheck() {
 // ==================== CUSTOMER HISTORY ====================
 async function viewCustomerHistory(whatsapp) {
   try {
-    const orders = await db.collection('orders').where('customer.whatsapp', '==', whatsapp).get();
+    if (!window.db) {
+      console.error('❌ Firestore not initialized');
+      return;
+    }
+    const orders = await window.db.collection('orders').where('customer.whatsapp', '==', whatsapp).get();
     const ordersList = orders.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
@@ -375,6 +424,13 @@ async function sendWhatsAppNotification(whatsapp, message) {
 
 // ==================== INITIALIZATION ====================
 function initAdminEnhancements() {
+  // Wait for Firebase to be properly initialized
+  if (!window.db || !window.auth) {
+    console.warn('Firebase still initializing, retrying in 500ms...');
+    setTimeout(initAdminEnhancements, 500);
+    return;
+  }
+  
   // KPIs avancés
   setTimeout(() => {
     loadAdvancedDashboardKPIs();
@@ -385,13 +441,18 @@ function initAdminEnhancements() {
   initRealTimeOrderAlerts();
   
   // Vérification promos planifiées
-  scheduledPromoCheck();
-  setInterval(scheduledPromoCheck, 3600000);
+  if (typeof scheduledPromoCheck === 'function') {
+    scheduledPromoCheck();
+    setInterval(scheduledPromoCheck, 3600000);
+  }
   
   // Gestion images
-  initImageUpload();
+  if (typeof initImageUpload === 'function') {
+    initImageUpload();
+  }
   
   logAdminActivity('ADMIN_LOGIN', 'Admin panel opened');
 }
 
-setTimeout(initAdminEnhancements, 1000);
+// Start initialization after a small delay to ensure Firebase is loaded
+setTimeout(initAdminEnhancements, 500);

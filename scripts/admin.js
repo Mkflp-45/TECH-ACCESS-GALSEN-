@@ -4,11 +4,56 @@ const STORAGE_KEY = 'techAccessData';
 let currentEditId = null;
 let currentPromoId = null;
 let currentData = {
-  products: [],
-  categories: [],
-  ticker: [],
+  products: [
+    {
+      id: 'p1',
+      name: 'Powerbank 20 000mAh',
+      price: 24.9,
+      category: 1,
+      desc: 'Charge rapide pour smartphone et tablette.',
+      icon: '🔋',
+      badge: 'Nouveau',
+      stock: 10
+    },
+    {
+      id: 'p2',
+      name: 'Coque anti-choc',
+      price: 9.5,
+      category: 2,
+      desc: 'Protection renforcée pour écran et coins.',
+      icon: '🛡️',
+      stock: 15
+    },
+    {
+      id: 'p3',
+      name: 'Câble USB-C 2m',
+      price: 5.2,
+      category: 3,
+      desc: 'Câble tressé résistant, compatible charge rapide.',
+      icon: '🔌',
+      stock: 20
+    },
+    {
+      id: 'p4',
+      name: 'Écouteurs Bluetooth',
+      price: 19.9,
+      category: 4,
+      desc: 'Son clair avec réduction de bruit passive.',
+      icon: '🎧',
+      badge: 'Best-seller',
+      stock: 8
+    }
+  ],
+  categories: [
+    { id: 1, name: 'Powerbanks', icon: '🔋', backgroundImage: 'https://via.placeholder.com/200?text=Powerbanks' },
+    { id: 2, name: 'Coques', icon: '🛡️', backgroundImage: 'https://via.placeholder.com/200?text=Coques' },
+    { id: 3, name: 'Câbles & Chargeurs', icon: '🔌', backgroundImage: 'https://via.placeholder.com/200?text=Câbles' },
+    { id: 4, name: 'Audio', icon: '🎧', backgroundImage: 'https://via.placeholder.com/200?text=Audio' }
+  ],
+  ticker: ['LIVRAISON GRATUITE dès 50€', 'ACCESSOIRES PREMIUM', 'TECH ACCESSIBLE A TOUS', 'GARANTIE 2 ANS', 'DAKAR PLATEAU', 'SUPPORT 7J/7'],
   exchangeRate: 655,
-  wavePaymentLink: ''
+  mobileMoneyApiKey: '',
+  mobileMoneySecretKey: ''
 };
 
 function initApp() {
@@ -18,8 +63,15 @@ function initApp() {
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape') toggleAdminMenu(false);
   });
-  if (!auth) return;
-  auth.onAuthStateChanged(async (user) => {
+  
+  // Attendre que Firebase soit initialisé
+  if (typeof window.auth === 'undefined') {
+    console.warn('Firebase auth not yet loaded, retrying...');
+    setTimeout(initApp, 100);
+    return;
+  }
+  
+  window.auth.onAuthStateChanged(async (user) => {
     if (user) {
       await loadData();
       showAdmin();
@@ -36,7 +88,7 @@ async function handleLogin(e) {
   const errorEl = document.getElementById('loginError');
 
   try {
-    await auth.signInWithEmailAndPassword(email, pwd);
+    await window.auth.signInWithEmailAndPassword(email, pwd);
     errorEl.style.display = 'none';
   } catch (error) {
     errorEl.textContent = '❌ Identifiants incorrects ou accès refusé';
@@ -45,7 +97,7 @@ async function handleLogin(e) {
 }
 
 function logout() {
-  auth.signOut();
+  window.auth.signOut();
   currentEditId = null;
   showLogin();
 }
@@ -59,9 +111,19 @@ function showAdmin() {
   document.getElementById('loginContainer').style.display = 'none';
   document.getElementById('adminLayout').style.display = 'grid';
   toggleAdminMenu(false);
-  document.getElementById('exchangeRate').value = currentData.exchangeRate;
-  document.getElementById('wavePaymentLink').value = currentData.wavePaymentLink || '';
-  updateDashboard();
+  const exchangeRateInput = document.getElementById('exchangeRate');
+  const mobileMoneyApiKeyInput = document.getElementById('mobileMoneyApiKey');
+  const mobileMoneySecretKeyInput = document.getElementById('mobileMoneySecretKey');
+  if (exchangeRateInput) exchangeRateInput.value = currentData.exchangeRate;
+  if (mobileMoneyApiKeyInput) mobileMoneyApiKeyInput.value = currentData.mobileMoneyApiKey || '';
+  if (mobileMoneySecretKeyInput) mobileMoneySecretKeyInput.value = currentData.mobileMoneySecretKey || '';
+
+  try {
+    updateDashboard();
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du tableau de bord:', error);
+  }
+
   renderProducts();
   renderCategories();
   renderTicker();
@@ -88,15 +150,16 @@ function updateFilterCategories() {
 
 async function loadData() {
   try {
-    const settings = await db.collection('settings').doc('config').get();
+    const settings = await window.db.collection('settings').doc('config').get();
     if (settings.exists) {
       const d = settings.data();
       currentData.categories = d.categories || [];
       currentData.ticker = d.ticker || [];
       currentData.exchangeRate = d.exchangeRate || 655;
-      currentData.wavePaymentLink = d.wavePaymentLink || currentData.wavePaymentLink;
+      currentData.mobileMoneyApiKey = d.mobileMoneyApiKey || currentData.mobileMoneyApiKey;
+      currentData.mobileMoneySecretKey = d.mobileMoneySecretKey || currentData.mobileMoneySecretKey;
     }
-    const productsSnap = await db.collection('products').get();
+    const productsSnap = await window.db.collection('products').get();
     currentData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     console.log('📦 Produits chargés depuis le Cloud:', currentData.products.length);
   } catch (error) {
@@ -111,9 +174,10 @@ async function saveData() {
       categories: currentData.categories,
       ticker: currentData.ticker,
       exchangeRate: currentData.exchangeRate,
-      wavePaymentLink: currentData.wavePaymentLink
+      mobileMoneyApiKey: currentData.mobileMoneyApiKey,
+      mobileMoneySecretKey: currentData.mobileMoneySecretKey
     };
-    await db.collection('settings').doc('config').set(dataToSave);
+    await window.db.collection('settings').doc('config').set(dataToSave);
     showToast('✅ Configuration synchronisée cloud', 'success');
   } catch (e) {
     console.error('❌ Erreur sauvegarde:', e);
@@ -123,13 +187,22 @@ async function saveData() {
 
 function saveSettings() {
   const rate = parseFloat(document.getElementById('exchangeRate').value);
-  const link = document.getElementById('wavePaymentLink').value.trim();
+  const apiKey = document.getElementById('mobileMoneyApiKey').value.trim();
+  const secretKey = document.getElementById('mobileMoneySecretKey').value.trim();
+  
   if (!rate || rate <= 0) {
     showToast('⚠️ Saisissez un taux de change valide', 'error');
     return;
   }
+  
+  if (!apiKey || !secretKey) {
+    showToast('⚠️ Saisissez la clé API et la clé secrète Mobile Money', 'error');
+    return;
+  }
+  
   currentData.exchangeRate = rate;
-  currentData.wavePaymentLink = link || currentData.wavePaymentLink;
+  currentData.mobileMoneyApiKey = apiKey;
+  currentData.mobileMoneySecretKey = secretKey;
   saveData();
   updateDashboard();
   renderProducts();
@@ -137,16 +210,23 @@ function saveSettings() {
 }
 
 function updateDashboard() {
-  document.getElementById('statProducts').textContent = currentData.products.length;
-  document.getElementById('statCategories').textContent = currentData.categories.length;
-  document.getElementById('statExchange').textContent = currentData.exchangeRate;
-  
-  // Calcul du revenu total et préparation du graphique
-  renderSalesDashboard();
+  try {
+    document.getElementById('statProducts')?.textContent = String(currentData.products?.length ?? 0);
+    document.getElementById('statCategories')?.textContent = String(currentData.categories?.length ?? 0);
+    document.getElementById('statExchange')?.textContent = String(currentData.exchangeRate ?? '');
+
+    // Calcul du revenu total et préparation du graphique
+    // renderSalesDashboard peut rejeter, on attrape l'erreur explicitement
+    renderSalesDashboard().catch(error => {
+      console.error('Erreur lors du rendu des ventes du dashboard:', error);
+    });
+  } catch (e) {
+    console.error('Erreur updateDashboard safe guard:', e);
+  }
 }
 
 async function renderSalesDashboard() {
-  const snapshot = await db.collection('orders').orderBy('timestamp', 'asc').get();
+  const snapshot = await window.db.collection('orders').orderBy('timestamp', 'asc').get();
   let totalRevenue = 0;
   let totalOrders = 0;
   const productSales = {};
@@ -322,11 +402,11 @@ function saveProduct() {
   if (imageData) productData.image = imageData;
 
   if (currentEditId) {
-    db.collection('products').doc(String(currentEditId)).update(productData)
+    window.db.collection('products').doc(String(currentEditId)).update(productData)
       .then(() => { finishSave(); })
       .catch(err => { showToast('❌ Erreur: ' + err.message, 'error'); });
   } else {
-    db.collection('products').add(productData)
+    window.db.collection('products').add(productData)
       .then(() => { finishSave(); })
       .catch(err => { showToast('❌ Erreur: ' + err.message, 'error'); });
   }
@@ -340,7 +420,7 @@ function finishSave() {
 
 function deleteProduct(id) {
   if (confirm('Êtes-vous sûr?')) {
-    db.collection('products').doc(id).delete().then(() => {
+    window.db.collection('products').doc(id).delete().then(() => {
       loadData();
       showToast('✅ Produit supprimé!', 'success');
     }).catch(err => {
@@ -408,7 +488,7 @@ function renderProducts(productsToRender = null) {
 async function bulkDelete() {
   if (!confirm(`Supprimer définitivement ces ${selectedProductIds.size} produits ?`)) return;
   try {
-    const promises = Array.from(selectedProductIds).map(id => db.collection('products').doc(id).delete());
+    const promises = Array.from(selectedProductIds).map(id => window.db.collection('products').doc(id).delete());
     await Promise.all(promises);
     selectedProductIds.clear();
     document.getElementById('selectAll').checked = false;
@@ -580,7 +660,7 @@ async function loadOrders(filter = 'all') {
   const topProductEl = document.getElementById('salesTopProduct');
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Chargement...</td></tr>';
   try {
-    let query = db.collection('orders').orderBy('timestamp', 'desc');
+    let query = window.db.collection('orders').orderBy('timestamp', 'desc');
     if (filter !== 'all') {
       const now = new Date();
       let start = new Date();
@@ -661,12 +741,12 @@ async function loadOrders(filter = 'all') {
 }
 
 async function updateOrderStatus(id, status) {
-  try { await db.collection('orders').doc(id).update({ status }); showToast('✅ Statut mis à jour'); } catch (e) { showToast('❌ Erreur', 'error'); }
+  try { await window.db.collection('orders').doc(id).update({ status }); showToast('✅ Statut mis à jour'); } catch (e) { showToast('❌ Erreur', 'error'); }
 }
 
 async function deleteOrder(id) {
   if (!confirm('Supprimer cette commande ?')) return;
-  try { await db.collection('orders').doc(id).delete(); loadOrders(); showToast('✅ Supprimé'); } catch (e) { showToast('❌ Erreur', 'error'); }
+  try { await window.db.collection('orders').doc(id).delete(); loadOrders(); showToast('✅ Supprimé'); } catch (e) { showToast('❌ Erreur', 'error'); }
 }
 
 function formatFCFA(value) {
@@ -715,7 +795,7 @@ async function updateProductStock(id, value) {
     return;
   }
   try {
-    await db.collection('products').doc(id).update({ stock });
+    await window.db.collection('products').doc(id).update({ stock });
     await loadData();
     loadInventory();
     showToast('✅ Stock mis à jour !', 'success');
@@ -732,7 +812,7 @@ async function loadSupportTickets() {
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Chargement...</td></tr>';
   try {
-    const snapshot = await db.collection('supportTickets').orderBy('timestamp', 'desc').get();
+    const snapshot = await window.db.collection('supportTickets').orderBy('timestamp', 'desc').get();
     let tickets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     tickets = tickets.filter(ticket => {
       const matchesSearch = !searchTerm || [ticket.name, ticket.whatsapp, ticket.subject, ticket.message].some(field => String(field || '').toLowerCase().includes(searchTerm));
@@ -777,7 +857,7 @@ async function saveSupportTicket() {
     return;
   }
   try {
-    await db.collection('supportTickets').add({
+    await window.db.collection('supportTickets').add({
       name,
       whatsapp,
       subject,
@@ -799,7 +879,7 @@ async function saveSupportTicket() {
 
 async function updateSupportStatus(id, status) {
   try {
-    await db.collection('supportTickets').doc(id).update({ status });
+    await window.db.collection('supportTickets').doc(id).update({ status });
     loadSupportTickets();
     showToast('✅ Statut du ticket mis à jour', 'success');
   } catch (e) {
@@ -811,7 +891,7 @@ async function updateSupportStatus(id, status) {
 async function deleteSupportTicket(id) {
   if (!confirm('Supprimer ce ticket de support ?')) return;
   try {
-    await db.collection('supportTickets').doc(id).delete();
+    await window.db.collection('supportTickets').doc(id).delete();
     loadSupportTickets();
     showToast('✅ Ticket supprimé', 'success');
   } catch (e) {
@@ -831,7 +911,7 @@ async function loadReports() {
   topProductsBody.innerHTML = '<tr><td colspan="3" style="text-align:center">Chargement...</td></tr>';
   topCategoriesBody.innerHTML = '<tr><td colspan="3" style="text-align:center">Chargement...</td></tr>';
   try {
-    const snapshot = await db.collection('orders').orderBy('timestamp', 'desc').get();
+    const snapshot = await window.db.collection('orders').orderBy('timestamp', 'desc').get();
     let orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     const fromValue = document.getElementById('reportsFromDate').value;
     const toValue = document.getElementById('reportsToDate').value;
@@ -984,7 +1064,7 @@ async function loadPromotions() {
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Chargement...</td></tr>';
   try {
-    const snapshot = await db.collection('promotions').orderBy('createdAt', 'desc').get();
+    const snapshot = await window.db.collection('promotions').orderBy('createdAt', 'desc').get();
     let promotions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     promotions = promotions.filter(promo => {
       const matchesSearch = !searchTerm || [promo.code, promo.description].some(field => String(field || '').toLowerCase().includes(searchTerm));
@@ -1041,10 +1121,10 @@ async function savePromotion() {
   }
   try {
     if (currentPromoId) {
-      await db.collection('promotions').doc(currentPromoId).update(promoData);
+      await window.db.collection('promotions').doc(currentPromoId).update(promoData);
       currentPromoId = null;
     } else {
-      await db.collection('promotions').add(promoData);
+      await window.db.collection('promotions').add(promoData);
     }
     document.getElementById('promoCode').value = '';
     document.getElementById('promoDiscount').value = '';
@@ -1061,7 +1141,7 @@ async function savePromotion() {
 
 async function editPromotion(id) {
   try {
-    const doc = await db.collection('promotions').doc(id).get();
+    const doc = await window.db.collection('promotions').doc(id).get();
     if (!doc.exists) return;
     const promo = doc.data();
     currentPromoId = id;
@@ -1079,7 +1159,7 @@ async function editPromotion(id) {
 async function deletePromotion(id) {
   if (!confirm('Supprimer cette promotion ?')) return;
   try {
-    await db.collection('promotions').doc(id).delete();
+    await window.db.collection('promotions').doc(id).delete();
     showToast('✅ Promotion supprimée', 'success');
     loadPromotions();
   } catch (e) {
@@ -1099,8 +1179,8 @@ async function loadFinances() {
 
   try {
     const [ordersSnap, purchasesSnap] = await Promise.all([
-      db.collection('orders').orderBy('timestamp', 'desc').get(),
-      db.collection('purchases').orderBy('timestamp', 'desc').get()
+      window.db.collection('orders').orderBy('timestamp', 'desc').get(),
+      window.db.collection('purchases').orderBy('timestamp', 'desc').get()
     ]);
 
     const orders = ordersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1224,7 +1304,7 @@ async function savePurchase() {
   }
 
   try {
-    await db.collection('purchases').add({
+    await window.db.collection('purchases').add({
       vendor,
       amount,
       category,
@@ -1246,7 +1326,7 @@ async function savePurchase() {
 async function deletePurchase(id) {
   if (!confirm('Supprimer cet achat ?')) return;
   try {
-    await db.collection('purchases').doc(id).delete();
+    await window.db.collection('purchases').doc(id).delete();
     showToast('✅ Achat supprimé', 'success');
     loadFinances();
   } catch (e) {
@@ -1322,7 +1402,8 @@ function resetAllData() {
         ],
         ticker: ['LIVRAISON GRATUITE dès 50€', 'ACCESSOIRES PREMIUM', 'TECH ACCESSIBLE A TOUS', 'GARANTIE 2 ANS', 'DAKAR PLATEAU', 'SUPPORT 7J/7'],
         exchangeRate: 655,
-        wavePaymentLink: ''
+        mobileMoneyApiKey: '',
+        mobileMoneySecretKey: ''
       };
       saveData();
       showAdmin();
