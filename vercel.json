@@ -18,6 +18,10 @@
     {
       "source": "/admin",
       "destination": "/admin.html"
+    },
+    {
+      "source": "/migrate",
+      "destination": "/migrate.html"
     }
   ]
 }

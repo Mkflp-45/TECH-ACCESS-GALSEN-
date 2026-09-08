@@ -45,6 +45,7 @@
 <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth-compat.js"></script>
 <script src="firebase-config.js"></script>
+<script src="scripts/auth.js" defer></script>
 <script src="scripts/main.js?v=mobilefix-1" defer></script>
 <script src="scripts/main-additions.js?v=features-1" defer></script>
 </head>
@@ -76,6 +77,12 @@
     <li><a href="#contact">Contact</a></li>
   </ul>
   <div class="nav-right">
+    <div id="authNav">
+      <button class="account-btn" onclick="openAuthModal()" id="loginBtn">👤 Connexion</button>
+      <button class="account-btn" onclick="toggleAccountDashboard()" id="userAccountBtn" style="display:none;">
+        👤 <span id="userNameDisplay">Compte</span>
+      </button>
+    </div>
     <button class="cart-btn" id="cartBtn" onclick="toggleCart()">
       🛒 Panier
       <div class="cart-count" id="cartCount">0</div>
@@ -215,16 +222,38 @@
   <div class="footer-payments" style="margin: 40px 0; padding: 30px 0; border-top: 1px solid rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1);">
     <div class="payment-methods-title" style="text-align: center; margin-bottom: 24px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; color: #1E88E5;">Moyens de paiement acceptés</div>
     <div class="payment-logos" style="display: flex; justify-content: center; align-items: center; gap: 40px; flex-wrap: wrap;">
+      <!-- Wave Payment -->
       <div class="payment-method-item" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
-        <div class="wave-circle">
-          <img src="assets/wave@221@-P-2021-06-30_00-18-27wave_logo_2%20(1).png" alt="Wave" loading="lazy" decoding="async">
+        <div class="wave-circle" style="width: 70px; height: 70px; background: rgba(30,136,229,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+          <img src="assets/wave@221@-P-2021-06-30_00-18-27wave_logo_2%20(1).png" alt="Wave" loading="lazy" decoding="async" style="max-width: 60px; max-height: 60px;">
         </div>
         <span style="font-size: 0.8rem; color: #aaa; font-weight: 500;">WAVE</span>
       </div>
+      <!-- Yas Payment -->
+      <div class="payment-method-item" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div class="yas-circle" style="width: 70px; height: 70px; background: rgba(255,193,7,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+          <img src="assets/yas%20logo.png" alt="Yas" loading="lazy" decoding="async" style="max-width: 60px; max-height: 60px;">
+        </div>
+        <span style="font-size: 0.8rem; color: #aaa; font-weight: 500;">YAS</span>
+      </div>
+      <!-- Max It Payment -->
+      <div class="payment-method-item" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div class="maxit-circle" style="width: 70px; height: 70px; background: rgba(233,30,99,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+          <img src="assets/max%20it%20logo.png" alt="Max It" loading="lazy" decoding="async" style="max-width: 60px; max-height: 60px;">
+        </div>
+        <span style="font-size: 0.8rem; color: #aaa; font-weight: 500;">MAX IT</span>
+      </div>
+      <!-- Carte Bancaire -->
+      <div class="payment-method-item" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div class="card-circle" style="width: 70px; height: 70px; background: rgba(76,175,80,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+          <img src="assets/carte%20bancaire%20logo.jpg" alt="Carte Bancaire" loading="lazy" decoding="async" style="max-width: 60px; max-height: 60px;">
+        </div>
+        <span style="font-size: 0.8rem; color: #aaa; font-weight: 500;">CARTE BANCAIRE</span>
+      </div>
       <!-- Cash Payment -->
       <div class="payment-method-item" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
-        <div class="cash-circle">
-          <img src="assets/images.jpg" alt="Espèces" loading="lazy" decoding="async">
+        <div class="cash-circle" style="width: 70px; height: 70px; background: rgba(156,39,176,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+          <img src="assets/images.jpg" alt="Espèces" loading="lazy" decoding="async" style="max-width: 60px; max-height: 60px;">
         </div>
         <span style="font-size: 0.8rem; color: #aaa; font-weight: 500;">ESPÈCES</span>
       </div>
@@ -263,11 +292,105 @@
     </div>
     <div class="payment-methods">
       <div class="payment-title">Mode de paiement</div>
-      <label><input type="radio" name="paymentMethod" value="wave" checked> Wave</label>
+      <label><input type="radio" name="paymentMethod" value="mobilemoney" checked> Mobile Money (Orange Money, Wave, etc.)</label>
       <label><input type="radio" name="paymentMethod" value="cash"> Espèces</label>
     </div>
     <button type="button" class="checkout-btn" onclick="checkout()">Commander →</button>
     <div class="cart-message" id="cartMessage"></div>
+  </div>
+</div>
+
+<!-- AUTH MODAL -->
+<div class="customer-modal-overlay" id="authModalOverlay">
+  <div class="customer-modal auth-modal">
+    <div class="customer-modal-header" id="authTitle">REJOINDRE TECH ACCESS</div>
+    <div id="loginFormContainer">
+      <form onsubmit="handleLogin(event)">
+        <div class="customer-form-group">
+          <label>Email</label>
+          <input type="email" id="loginEmail" required placeholder="votre@email.com">
+        </div>
+        <div class="customer-form-group">
+          <label>Mot de passe</label>
+          <input type="password" id="loginPass" required>
+        </div>
+        <button type="submit" class="btn-pay" style="width:100%">Se connecter</button>
+        <p style="text-align:center; margin-top:15px; font-size:0.9rem;">
+          Pas encore de compte ? <a href="#" onclick="toggleAuthMode('register')">S'inscrire</a>
+        </p>
+      </form>
+    </div>
+    <div id="registerFormContainer" style="display:none;">
+      <form onsubmit="handleRegister(event)">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+          <div class="customer-form-group"><label>Prénom</label><input type="text" id="regFirstName" required></div>
+          <div class="customer-form-group"><label>Nom</label><input type="text" id="regName" required></div>
+        </div>
+        <div class="customer-form-group"><label>Téléphone WhatsApp</label><input type="tel" id="regPhone" required></div>
+        <div class="customer-form-group"><label>Quartier</label><input type="text" id="regQuartier" required></div>
+        <div class="customer-form-group"><label>Email</label><input type="email" id="regEmail" required></div>
+        <div class="customer-form-group"><label>Mot de passe</label><input type="password" id="regPass" required></div>
+        <div class="customer-form-group"><label>Confirmer</label><input type="password" id="regPassConfirm" required></div>
+        <button type="submit" class="btn-pay" style="width:100%">Créer mon compte</button>
+        <p style="text-align:center; margin-top:15px; font-size:0.9rem;">
+          Déjà inscrit ? <a href="#" onclick="toggleAuthMode('login')">Se connecter</a>
+        </p>
+      </form>
+    </div>
+    <button type="button" class="btn-cancel" onclick="closeAuthModal()" style="width:100%; margin-top:10px;">Fermer</button>
+  </div>
+</div>
+
+<!-- ACCOUNT DASHBOARD PANEL -->
+<div class="cart-overlay" id="accountOverlay" onclick="toggleAccountDashboard()"></div>
+<div class="cart-panel" id="accountPanel">
+  <div class="cart-header">
+    <div class="cart-title">MON ESPACE CLIENT</div>
+    <button class="close-btn" onclick="toggleAccountDashboard()">✕</button>
+  </div>
+  
+  <div class="account-scroll-area" style="padding:20px; overflow-y:auto; height:calc(100% - 150px);">
+    <!-- Loyalty Card -->
+    <div class="loyalty-card" style="background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%); border-radius:15px; padding:20px; color:white; margin-bottom:25px;">
+      <div style="display:flex; justify-content:space-between; align-items:start;">
+        <div>
+          <span id="userTier" style="background:rgba(255,255,255,0.2); padding:4px 10px; border-radius:20px; font-size:0.75rem; font-weight:700; text-transform:uppercase;">Bronze</span>
+          <h3 style="margin:10px 0 5px 0; font-family:'Bebas Neue'; font-size:1.8rem;"><span id="userPoints">0</span> POINTS</h3>
+        </div>
+        <div style="font-size:2rem;">💎</div>
+      </div>
+      <div class="loyalty-progress" style="background:rgba(255,255,255,0.2); height:6px; border-radius:3px; margin:15px 0;">
+        <div id="tierProgress" style="background:#fff; height:100%; width:10%; border-radius:3px;"></div>
+      </div>
+      <p style="font-size:0.8rem; margin:0;" id="nextTierInfo">Plus que 100 pts pour le niveau Argent</p>
+    </div>
+
+    <div class="account-menu">
+      <div class="account-section-title" style="color:var(--accent); font-weight:600; margin-bottom:15px; font-size:0.9rem;">MES COMMANDES</div>
+      <div id="orderHistoryContainer">
+        <p style="color:#666; font-size:0.85rem;">Aucune commande pour le moment.</p>
+      </div>
+
+      <div class="account-section-title" style="color:var(--accent); font-weight:600; margin:25px 0 15px 0; font-size:0.9rem;">PARRAINAGE</div>
+      <div class="referral-box" style="background:rgba(255,255,255,0.05); border:1px dashed rgba(255,255,255,0.1); border-radius:10px; padding:15px;">
+        <p style="font-size:0.8rem; margin-bottom:10px;">Gagnez 500 pts par ami parrainé !</p>
+        <div style="display:flex; gap:10px;">
+          <input type="text" id="referralCode" readonly style="flex:1; background:#000; border:none; padding:8px; border-radius:5px; color:var(--accent); font-family:monospace;" value="TECH-XXXX">
+          <button class="add-btn" onclick="copyReferral()" style="width:40px; height:40px;">📋</button>
+        </div>
+      </div>
+
+      <div class="account-section-title" style="color:var(--accent); font-weight:600; margin:25px 0 15px 0; font-size:0.9rem;">MES INFOS</div>
+      <div id="userInfoSummary" style="font-size:0.9rem; line-height:1.8; opacity:0.8;">
+        <p>📍 <span id="dashQuartier">-</span></p>
+        <p>📞 <span id="dashPhone">-</span></p>
+        <p>✉️ <span id="dashEmail">-</span></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="cart-footer">
+    <button class="checkout-btn" style="background:#ff4444;" onclick="handleLogout()">Déconnexion</button>
   </div>
 </div>
 
@@ -312,6 +435,3 @@
 
 </body>
 </html>
-
-
-

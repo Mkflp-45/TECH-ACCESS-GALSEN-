@@ -13,8 +13,9 @@ let adminData = {
     { id: 4, name: 'Audio', backgroundImage: 'https://via.placeholder.com/200?text=Audio' }
   ],
   ticker: ['LIVRAISON GRATUITE dès 50€', 'ACCESSOIRES PREMIUM', 'TECH ACCESSIBLE A TOUS', 'GARANTIE 2 ANS', 'DAKAR PLATEAU', 'SUPPORT 7J/7'],
-  exchangeRate: 655,
-  wavePaymentLink: 'https://pay.wave.com/m/M_sn_Bg4an4f38jXi/c/sn/'
+  exchangeRate: 655
+  // Les clés Mobile Money ne vivent plus ici : elles sont côté serveur uniquement,
+  // dans la fonction Netlify netlify/functions/initiate-payment.js
 };
 
 // Fallback local products for a fully dynamic vanilla site even when Firestore is unreachable
@@ -55,23 +56,67 @@ adminData.products = [
   }
 ];
 
+function normalizeCategoryItem(category, index = 0) {
+  const normalized = category && typeof category === 'object' ? category : { id: category, name: String(category || '') };
+  const id = normalized.id != null && String(normalized.id).trim() !== '' ? String(normalized.id).trim() : '';
+  const name = normalized.name || normalized.title || normalized.label || id || `Catégorie ${index + 1}`;
+  const slug = normalizeCategorySlug(id || name || index + 1);
+
+  return {
+    ...normalized,
+    id: id || name,
+    name,
+    slug,
+    searchText: [id, name, normalized.title, normalized.label, slug].filter(Boolean).join(' ').toLowerCase()
+  };
+}
+
+function normalizeCategoryList(categories) {
+  return Array.isArray(categories) ? categories.map((category, index) => normalizeCategoryItem(category, index)) : [];
+}
+
+function getCategoryForProduct(product) {
+  const productCategory = String(product?.category ?? '').trim();
+  if (!productCategory) return null;
+
+  return adminData.categories.find(category => {
+    const normalizedCategory = normalizeCategoryItem(category);
+    return [normalizedCategory.id, normalizedCategory.name, normalizedCategory.slug]
+      .filter(Boolean)
+      .some(value => String(value).trim() === productCategory || normalizeCategorySlug(value) === normalizeCategorySlug(productCategory));
+  }) || null;
+}
+
+function productBelongsToCategory(product, category) {
+  const normalizedCategory = normalizeCategoryItem(category);
+  const productCategory = String(product?.category ?? '').trim();
+  if (!productCategory) return false;
+
+  return [normalizedCategory.id, normalizedCategory.name, normalizedCategory.slug]
+    .filter(Boolean)
+    .some(value => String(value).trim() === productCategory || normalizeCategorySlug(value) === normalizeCategorySlug(productCategory));
+}
+
 async function loadAllDataFromFirestore() {
   try {
     console.log('📥 Initialisation des données...');
-    const settingsDoc = await db.collection('settings').doc('config').get();
+    const settingsDoc = await window.db.collection('settings').doc('config').get();
     if (settingsDoc.exists) {
       const settings = settingsDoc.data();
       console.log('🔍 Données brutes de Firestore (settings/config):', settings);
-      adminData.categories = Array.isArray(settings.categories) ? settings.categories : adminData.categories;
-      adminData.ticker = Array.isArray(settings.ticker) ? settings.ticker : adminData.ticker;
+      if (Array.isArray(settings.categories) && settings.categories.length > 0) {
+        adminData.categories = normalizeCategoryList(settings.categories);
+      }
+      if (Array.isArray(settings.ticker) && settings.ticker.length > 0) {
+        adminData.ticker = settings.ticker;
+      }
       adminData.exchangeRate = settings.exchangeRate || 655;
-      adminData.wavePaymentLink = settings.wavePaymentLink || adminData.wavePaymentLink;
       console.log('✅ Catégories chargées dans adminData:', adminData.categories);
     } else {
       console.warn('⚠️ Document settings/config n\'existe pas dans Firestore');
     }
 
-    const productsSnap = await db.collection('products').get();
+    const productsSnap = await window.db.collection('products').get();
     const fetchedProducts = productsSnap.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
@@ -96,12 +141,16 @@ async function loadAllDataFromFirestore() {
 }
 
 function syncFirestoreData() {
-  db.collection('settings').doc('config').onSnapshot(doc => {
+  window.db.collection('settings').doc('config').onSnapshot(doc => {
     if (doc.exists) {
       const data = doc.data();
       console.log('🔄 Mise à jour Firestore reçue (settings/config):', data);
-      adminData.categories = Array.isArray(data.categories) ? data.categories : adminData.categories;
-      adminData.ticker = Array.isArray(data.ticker) ? data.ticker : adminData.ticker;
+      if (Array.isArray(data.categories) && data.categories.length > 0) {
+        adminData.categories = normalizeCategoryList(data.categories);
+      }
+      if (Array.isArray(data.ticker) && data.ticker.length > 0) {
+        adminData.ticker = data.ticker;
+      }
       adminData.exchangeRate = data.exchangeRate || 655;
       renderCategories();
       updateTicker();
@@ -111,7 +160,7 @@ function syncFirestoreData() {
     }
   });
 
-  db.collection('products').onSnapshot(snapshot => {
+  window.db.collection('products').onSnapshot(snapshot => {
     adminData.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     renderProducts();
   });
@@ -168,28 +217,59 @@ function toggleCart() {
   document.getElementById('cartPanel').classList.toggle('open', cartOpen);
 }
 
-function redirectToWave(paymentUrl) {
-  // Crée un lien invisible et le déclenche programmatiquement
-  // Cela respecte la politique des navigateurs mobiles (user-initiated navigation)
-  const a = document.createElement('a');
-  a.href = paymentUrl;
-  a.target = '_blank';
-  a.rel = 'noopener noreferrer';
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-
-function getWavePaymentUrl(total, orderId = '') {
-  const base = adminData.wavePaymentLink || 'https://pay.wave.com/m/M_sn_Bg4an4f38jXi/c/sn/';
+/**
+ * Initie un paiement via l'API Mobile Money
+ */
+async function initiateMobileMoneyPayment(orderData) {
   try {
-    const url = new URL(base);
-    if (total > 0) url.searchParams.set('amount', Math.round(total));
-    if (orderId) url.searchParams.set('orderId', orderId);
-    return url.toString();
+    showLoadingState(true);
+    showToast('⏳ Initialisation du paiement...');
+
+    const paymentPayload = {
+      amount: Math.round(orderData.total * adminData.exchangeRate), // Convertir en FCFA
+      orderId: orderData.orderToken,
+      customerName: `${orderData.customer.firstName} ${orderData.customer.name}`,
+      customerPhone: orderData.customer.whatsapp,
+      description: `Commande TECH-ACCESS #${orderData.orderToken.substring(0, 8)}`,
+      returnUrl: window.location.origin + window.location.pathname,
+      notifyUrl: window.location.origin + '/api/webhook/payment' // À configurer côté serveur
+    };
+
+    // On appelle notre propre fonction serverless (netlify/functions/initiate-payment.js),
+    // qui seule connaît les clés API/secrète, gardées côté serveur.
+    const response = await fetch('/.netlify/functions/initiate-payment', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(paymentPayload)
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Erreur initialisation paiement');
+    }
+
+    const result = await response.json();
+
+    if (result.paymentUrl) {
+      // Rediriger vers la page de paiement
+      window.location.href = result.paymentUrl;
+    } else if (result.checkoutId) {
+      // Alternative: afficher un checkout modal
+      // ⚠️ L'URL de checkout doit être fournie par le vrai fournisseur de paiement
+      // (via result.checkoutUrl par ex.) une fois l'intégration réelle branchée.
+      showToast('✅ Redirection vers le paiement...');
+      window.location.href = result.checkoutUrl || result.paymentUrl;
+    } else {
+      throw new Error('Réponse API invalide');
+    }
   } catch (error) {
-    return base;
+    console.error('Erreur paiement:', error);
+    showToast(`❌ Erreur: ${error.message}`);
+  } finally {
+    showLoadingState(false);
+    return;
   }
 }
 
@@ -199,7 +279,7 @@ function addToCart(productId) {
   const existing = cart.find(i => i.name === product.name);
   const price = Number(product.price) || 0;
   if (existing) { existing.qty++; }
-  else { cart.push({ name: product.name, price, icon: product.icon, image: product.image || null, qty: 1 }); }
+  else { cart.push({ id: product.id, name: product.name, price, icon: product.icon, image: product.image || null, qty: 1 }); }
   updateCart();
   showToast(`${product.icon || '🛒'} ${product.name} ajouté !`);
 }
@@ -257,14 +337,14 @@ function checkout() {
 
   const total = getCartTotal();
   const method = document.querySelector('input[name="paymentMethod"]:checked').value;
-  if (method === 'wave') {
+  if (method === 'mobilemoney') {
     processPayment();
   } else if (method === 'cash') {
     document.getElementById('cartMessage').textContent = '';
     openCustomerModal(total);
   } else {
     showToast('Mode de paiement non pris en charge.');
-    document.getElementById('cartMessage').textContent = 'Veuillez sélectionner Wave ou espèces.';
+    document.getElementById('cartMessage').textContent = 'Veuillez sélectionner Mobile Money ou espèces.';
   }
 }
 
@@ -311,10 +391,6 @@ async function submitCustomerForm(event) {
   if (btn) btn.disabled = true;
 
   const orderToken = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
-  if (method === 'wave') {
-    const paymentUrl = getWavePaymentUrl(total, orderToken);
-    redirectToWave(paymentUrl);
-  }
 
   showToast('⌛ Enregistrement de la commande...');
 
@@ -326,21 +402,40 @@ async function submitCustomerForm(event) {
       quartier
     },
     items: cart.map(item => ({
+      id: item.id || null,
       name: item.name,
       price: Math.round(item.price * adminData.exchangeRate),
       qty: item.qty
     })),
     total: total,
-    paymentMethod: method === 'cash' ? 'Espèces' : 'Wave',
-    status: method === 'wave' ? 'Payé' : 'En attente - paiement en espèces',
+    paymentMethod: method === 'cash' ? 'Espèces' : 'Mobile Money',
+    status: method === 'mobilemoney' ? 'En attente - paiement en cours' : 'En attente - paiement en espèces',
     orderToken,
+    userId: firebase.auth().currentUser ? firebase.auth().currentUser.uid : null,
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   };
 
   try {
-    await db.collection('orders').add(orderData);
+    // Si paiement Mobile Money, enregistrer la commande et rediriger
+    if (method === 'mobilemoney') {
+      await window.db.collection('orders').add(orderData);
+      showToast('⏳ Redirection vers le paiement...');
+      closeCustomerModal();
+      
+      // Lancer le paiement Mobile Money
+      await initiateMobileMoneyPayment(orderData);
+      return;
+    }
+
+    // Si paiement en espèces
+    await window.db.collection('orders').add(orderData);
     showToast('✅ Commande enregistrée !');
     closeCustomerModal();
+
+    // Mise à jour de la fidélité si connecté
+    if (firebase.auth().currentUser) {
+      updateUserLoyalty(total);
+    }
 
     // Nettoyage du panier
     cart = [];
@@ -417,13 +512,12 @@ function renderCategories() {
     return;
   }
 
-  const catHtml = adminData.categories.map(cat => {
-    const normalizedCat = cat && typeof cat === 'object' ? cat : { id: cat, name: String(cat) };
-    const catId = normalizedCat.id || normalizedCat.name || 'unknown';
-    const catName = normalizedCat.name || normalizedCat.title || normalizedCat.label || String(catId);
-    const categorySlug = normalizeCategorySlug(catId);
-    const backgroundImage = normalizedCat.backgroundImage || 'https://via.placeholder.com/200?text=' + encodeURIComponent(catName);
-    const count = adminData.products.filter(p => p.category != null && String(p.category).trim() === String(catId).trim()).length;
+  const catHtml = normalizeCategoryList(adminData.categories).map(cat => {
+    const catId = cat.id || cat.name || 'unknown';
+    const catName = cat.name || cat.title || cat.label || String(catId);
+    const categorySlug = cat.slug || normalizeCategorySlug(catId);
+    const backgroundImage = cat.backgroundImage || 'https://via.placeholder.com/200?text=' + encodeURIComponent(catName);
+    const count = adminData.products.filter(product => productBelongsToCategory(product, cat)).length;
     const bgStyle = `background-image: url('${backgroundImage}'); background-size: cover; background-position: center;`;
     return `
       <a class="cat-card" href="#category-${categorySlug}" onclick="scrollToCategory('${categorySlug}'); return false;" style="${bgStyle}" draggable="false" ondragstart="return false;">
@@ -545,7 +639,7 @@ const obs = new IntersectionObserver(entries => {
 
 function productMatchesQuery(product, query) {
   if (!query) return true;
-  const categoryName = adminData.categories.find(cat => String(cat.id).trim() === String(product.category).trim())?.name || '';
+  const categoryName = getCategoryForProduct(product)?.name || '';
   const text = [product.name, product.desc, product.icon, product.badge, categoryName].filter(Boolean).join(' ').toLowerCase();
   return text.includes(query);
 }
@@ -569,10 +663,11 @@ function renderProducts() {
   let renderedCount = 0;
 
   const query = window.productSearchQuery || '';
-  adminData.categories.forEach(cat => {
-    const catId = cat && typeof cat === 'object' ? cat.id || cat.name : cat;
-    const categorySlug = normalizeCategorySlug(catId);
-    const catProducts = adminData.products.filter(p => p.category && String(p.category).trim() === String(catId).trim() && productMatchesQuery(p, query));
+  const categories = normalizeCategoryList(adminData.categories);
+  categories.forEach(cat => {
+    const catId = cat.id || cat.name;
+    const categorySlug = cat.slug || normalizeCategorySlug(catId);
+    const catProducts = adminData.products.filter(product => productBelongsToCategory(product, cat) && productMatchesQuery(product, query));
     if (catProducts.length > 0) {
       renderedCount += catProducts.length;
       const section = document.createElement('div');
@@ -611,9 +706,8 @@ function renderProducts() {
     }
   });
 
-  if (renderedCount < adminData.products.length) {
-    const otherProducts = adminData.products.filter(p => !adminData.categories.some(cat => String(cat.id).trim() === String(p.category).trim()) && productMatchesQuery(p, query));
-    if (otherProducts.length > 0) {
+  const otherProducts = adminData.products.filter(p => !categories.some(cat => productBelongsToCategory(p, cat)) && productMatchesQuery(p, query));
+  if (otherProducts.length > 0) {
       const section = document.createElement('div');
       section.className = 'category-section reveal';
       section.innerHTML = `
@@ -641,13 +735,13 @@ function renderProducts() {
       container.appendChild(section);
       initializeAutoTicker(section.querySelector('.products-carousel'), 0.7);
     }
-  }
 
   document.querySelectorAll('.reveal').forEach(r => obs.observe(r));
 }
 
 function updateTicker() {
   const tickerInner = document.querySelector('.ticker-inner');
+  if (!tickerInner) return;
   const items = adminData.ticker || [];
   tickerInner.innerHTML = items.map((item, idx) => {
     const dot = idx === items.length - 1 ? '' : '<span class="ticker-dot">●</span>';
@@ -676,7 +770,7 @@ window.debugTechAccess = {
     return adminData.products;
   },
   checkFirestoreCategories: async () => {
-    const doc = await db.collection('settings').doc('config').get();
+    const doc = await window.db.collection('settings').doc('config').get();
     const data = doc.data();
     console.log('🔍 Données dans Firestore (settings/config):', data);
     return data;

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Migration Firestore — TECH ACCESS</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0b1020;
+    --panel: rgba(255, 255, 255, 0.06);
+    --border: rgba(255, 255, 255, 0.12);
+    --text: #f4f7fb;
+    --muted: #b4bfd1;
+    --accent: #42a5f5;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    font-family: Arial, Helvetica, sans-serif;
+    background:
+      radial-gradient(circle at top, rgba(66, 165, 245, 0.22), transparent 40%),
+      linear-gradient(160deg, #09101f, #0f172a 55%, #111827);
+    color: var(--text);
+  }
+  .card {
+    width: min(780px, 100%);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 28px;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+  }
+  .eyebrow {
+    margin: 0 0 12px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.78rem;
+  }
+  h1 {
+    margin: 0;
+    font-size: clamp(2rem, 4vw, 3.25rem);
+    line-height: 1.05;
+  }
+  p {
+    color: var(--muted);
+    line-height: 1.65;
+    font-size: 1rem;
+  }
+  .grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    margin-top: 24px;
+  }
+  .step {
+    padding: 18px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .step strong {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 0 18px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #42a5f5, #1e88e5);
+    color: white;
+    font-weight: 700;
+  }
+  .button.secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+  }
+  code {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    font-family: Consolas, monospace;
+    font-size: 0.95em;
+  }
+</style>
+</head>
+<body>
+  <main class="card">
+    <p class="eyebrow">Migration Firestore</p>
+    <h1>Importer les produits locaux vers Firestore</h1>
+    <p>
+      Cette page sert de point d’entrée pour la migration des données du site statique vers Firestore.
+      Elle évite maintenant le 404 annoncé par la documentation et les redirections.
+    </p>
+
+    <div class="grid">
+      <section class="step">
+        <strong>1. Vérifier la configuration</strong>
+        Ouvre <code>firebase-config.js</code> et confirme que les identifiants de projet sont corrects.
+      </section>
+      <section class="step">
+        <strong>2. Préparer les règles</strong>
+        Publie les règles Firestore du dépôt avant d’exécuter une migration en production.
+      </section>
+      <section class="step">
+        <strong>3. Lancer la migration</strong>
+        Utilise ensuite l’outil d’administration ou le script de migration prévu par le projet.
+      </section>
+    </div>
+
+    <div class="actions">
+      <a class="button" href="admin.html">Ouvrir l’admin</a>
+      <a class="button secondary" href="index.html">Retour au site</a>
+    </div>
+  </main>
+</body>
+</html>

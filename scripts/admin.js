@@ -51,9 +51,9 @@ let currentData = {
     { id: 4, name: 'Audio', icon: '🎧', backgroundImage: 'https://via.placeholder.com/200?text=Audio' }
   ],
   ticker: ['LIVRAISON GRATUITE dès 50€', 'ACCESSOIRES PREMIUM', 'TECH ACCESSIBLE A TOUS', 'GARANTIE 2 ANS', 'DAKAR PLATEAU', 'SUPPORT 7J/7'],
-  exchangeRate: 655,
-  mobileMoneyApiKey: '',
-  mobileMoneySecretKey: ''
+  exchangeRate: 655
+  // Les clés Mobile Money ne se configurent plus ici : elles vivent dans les
+  // variables d'environnement Netlify, lues uniquement par la fonction serverless.
 };
 
 function initApp() {
@@ -112,11 +112,7 @@ function showAdmin() {
   document.getElementById('adminLayout').style.display = 'grid';
   toggleAdminMenu(false);
   const exchangeRateInput = document.getElementById('exchangeRate');
-  const mobileMoneyApiKeyInput = document.getElementById('mobileMoneyApiKey');
-  const mobileMoneySecretKeyInput = document.getElementById('mobileMoneySecretKey');
   if (exchangeRateInput) exchangeRateInput.value = currentData.exchangeRate;
-  if (mobileMoneyApiKeyInput) mobileMoneyApiKeyInput.value = currentData.mobileMoneyApiKey || '';
-  if (mobileMoneySecretKeyInput) mobileMoneySecretKeyInput.value = currentData.mobileMoneySecretKey || '';
 
   try {
     updateDashboard();
@@ -156,8 +152,6 @@ async function loadData() {
       currentData.categories = d.categories || [];
       currentData.ticker = d.ticker || [];
       currentData.exchangeRate = d.exchangeRate || 655;
-      currentData.mobileMoneyApiKey = d.mobileMoneyApiKey || currentData.mobileMoneyApiKey;
-      currentData.mobileMoneySecretKey = d.mobileMoneySecretKey || currentData.mobileMoneySecretKey;
     }
     const productsSnap = await window.db.collection('products').get();
     currentData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -173,9 +167,7 @@ async function saveData() {
     const dataToSave = {
       categories: currentData.categories,
       ticker: currentData.ticker,
-      exchangeRate: currentData.exchangeRate,
-      mobileMoneyApiKey: currentData.mobileMoneyApiKey,
-      mobileMoneySecretKey: currentData.mobileMoneySecretKey
+      exchangeRate: currentData.exchangeRate
     };
     await window.db.collection('settings').doc('config').set(dataToSave);
     showToast('✅ Configuration synchronisée cloud', 'success');
@@ -187,22 +179,13 @@ async function saveData() {
 
 function saveSettings() {
   const rate = parseFloat(document.getElementById('exchangeRate').value);
-  const apiKey = document.getElementById('mobileMoneyApiKey').value.trim();
-  const secretKey = document.getElementById('mobileMoneySecretKey').value.trim();
-  
+
   if (!rate || rate <= 0) {
     showToast('⚠️ Saisissez un taux de change valide', 'error');
     return;
   }
-  
-  if (!apiKey || !secretKey) {
-    showToast('⚠️ Saisissez la clé API et la clé secrète Mobile Money', 'error');
-    return;
-  }
-  
+
   currentData.exchangeRate = rate;
-  currentData.mobileMoneyApiKey = apiKey;
-  currentData.mobileMoneySecretKey = secretKey;
   saveData();
   updateDashboard();
   renderProducts();
@@ -211,9 +194,12 @@ function saveSettings() {
 
 function updateDashboard() {
   try {
-    document.getElementById('statProducts')?.textContent = String(currentData.products?.length ?? 0);
-    document.getElementById('statCategories')?.textContent = String(currentData.categories?.length ?? 0);
-    document.getElementById('statExchange')?.textContent = String(currentData.exchangeRate ?? '');
+    const statProductsEl = document.getElementById('statProducts');
+    const statCategoriesEl = document.getElementById('statCategories');
+    const statExchangeEl = document.getElementById('statExchange');
+    if (statProductsEl) statProductsEl.textContent = String(currentData.products?.length ?? 0);
+    if (statCategoriesEl) statCategoriesEl.textContent = String(currentData.categories?.length ?? 0);
+    if (statExchangeEl) statExchangeEl.textContent = String(currentData.exchangeRate ?? '');
 
     // Calcul du revenu total et préparation du graphique
     // renderSalesDashboard peut rejeter, on attrape l'erreur explicitement
@@ -1401,9 +1387,7 @@ function resetAllData() {
           { id: 4, name: 'Audio', icon: '🎧' }
         ],
         ticker: ['LIVRAISON GRATUITE dès 50€', 'ACCESSOIRES PREMIUM', 'TECH ACCESSIBLE A TOUS', 'GARANTIE 2 ANS', 'DAKAR PLATEAU', 'SUPPORT 7J/7'],
-        exchangeRate: 655,
-        mobileMoneyApiKey: '',
-        mobileMoneySecretKey: ''
+        exchangeRate: 655
       };
       saveData();
       showAdmin();

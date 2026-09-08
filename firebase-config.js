@@ -1,4 +1,7 @@
 // Centralisation de la configuration Firebase
+// Configuration pour le contexte navigateur (compatibility mode)
+// CLÉS RÉELLES CONFIGURÉES ✅
+
 const firebaseConfig = {
   apiKey: "AIzaSyBEyZ7Lr79bRfLTyezU3lGp6QfapnFBSt4",
   authDomain: "tech-acces-galsen.firebaseapp.com",
@@ -9,10 +12,24 @@ const firebaseConfig = {
   measurementId: "G-735V82LY58"
 };
 
-// Initialisation unique
+console.log('✅ Firebase Config Loaded Successfully');
+console.log('🔑 API Key: ' + firebaseConfig.apiKey.substring(0, 20) + '...');
+console.log('📦 Project: ' + firebaseConfig.projectId);
+
+// Initialisation Firebase
 if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
+  console.log('🔧 Initialisation Firebase...');
+  firebase.initializeApp(firebaseConfig);
+  console.log('✅ Firebase initialisé');
 }
 
-const db = firebase.firestore();
-const auth = firebase.auth();
+// Expose to global window scope for access across scripts
+window.db = firebase.firestore();
+window.auth = firebase.auth();
+
+// Also create module-level constants for backward compatibility
+const db = window.db;
+const auth = window.auth;
+
+console.log('📦 Firestore disponible:', !!window.db);
+console.log('🔐 Auth disponible:', !!window.auth);

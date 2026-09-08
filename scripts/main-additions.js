@@ -1,6 +1,122 @@
 // ==================== WISHLIST / FAVORIS ====================
 let wishlist = JSON.parse(localStorage.getItem('techAccessWishlist')) || [];
 
+// ==================== LOYALTY ENGINE ====================
+const TIER_CONFIG = {
+  BRONZE: { min: 0, label: 'Bronze', color: '#cd7f32', bonus: 1 },
+  SILVER: { min: 500, label: 'Argent', color: '#c0c0c0', bonus: 1.1 },
+  GOLD: { min: 2000, label: 'Or', color: '#ffd700', bonus: 1.25 },
+  PREMIUM: { min: 5000, label: 'Premium', color: '#e5e4e2', bonus: 1.5 }
+};
+
+function getTier(points) {
+  if (points >= TIER_CONFIG.PREMIUM.min) return TIER_CONFIG.PREMIUM;
+  if (points >= TIER_CONFIG.GOLD.min) return TIER_CONFIG.GOLD;
+  if (points >= TIER_CONFIG.SILVER.min) return TIER_CONFIG.SILVER;
+  return TIER_CONFIG.BRONZE;
+}
+
+async function updateUserLoyalty(orderTotal) {
+  const user = firebase.auth().currentUser;
+  if (!user) return;
+
+  // 1 point pour chaque 1000 FCFA dépensé
+  const pointsEarned = Math.floor(orderTotal / 1000);
+  
+  const userRef = db.collection('users').doc(user.uid);
+  await db.runTransaction(async (transaction) => {
+    const sfDoc = await transaction.get(userRef);
+    const newPoints = (sfDoc.data().loyaltyPoints || 0) + pointsEarned;
+    const totalSpent = (sfDoc.data().totalSpent || 0) + orderTotal;
+    const orderCount = (sfDoc.data().orderCount || 0) + 1;
+    
+    transaction.update(userRef, { 
+      loyaltyPoints: newPoints,
+      totalSpent: totalSpent,
+      orderCount: orderCount,
+      lastPurchase: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  });
+  
+  showToast(`✨ +${pointsEarned} points de fidélité !`);
+}
+
+function updateLoyaltyUI(userData) {
+  const pts = userData.loyaltyPoints || 0;
+  const tier = getTier(pts);
+  
+  const ptsEl = document.getElementById('userPoints');
+  const tierEl = document.getElementById('userTier');
+  const progressEl = document.getElementById('tierProgress');
+  const nextInfoEl = document.getElementById('nextTierInfo');
+
+  if (ptsEl) ptsEl.textContent = pts.toLocaleString();
+  if (tierEl) {
+    tierEl.textContent = tier.label;
+    tierEl.style.background = tier.color;
+  }
+
+  // Calcul progrès prochain palier
+  let nextTier = TIER_CONFIG.SILVER;
+  if (pts >= TIER_CONFIG.SILVER.min) nextTier = TIER_CONFIG.GOLD;
+  if (pts >= TIER_CONFIG.GOLD.min) nextTier = TIER_CONFIG.PREMIUM;
+  
+  if (pts < TIER_CONFIG.PREMIUM.min) {
+    const progress = (pts / nextTier.min) * 100;
+    if (progressEl) progressEl.style.width = `${Math.min(progress, 100)}%`;
+    if (nextInfoEl) nextInfoEl.textContent = `Plus que ${nextTier.min - pts} pts pour le niveau ${nextTier.label}`;
+  } else {
+    if (progressEl) progressEl.style.width = '100%';
+    if (nextInfoEl) nextInfoEl.textContent = 'Niveau maximum atteint ! 🎉';
+  }
+}
+
+function generateReferralCode(uid) {
+  return `TECH-${uid.substring(0, 5).toUpperCase()}`;
+}
+
+function copyReferral() {
+  const codeInput = document.getElementById('referralCode');
+  if (!codeInput) return;
+  codeInput.select();
+  codeInput.setSelectionRange(0, 99999); // Pour mobile
+  navigator.clipboard.writeText(codeInput.value);
+  showToast('✅ Code de parrainage copié !');
+}
+
+async function loadUserOrderHistory(uid) {
+  const container = document.getElementById('orderHistoryContainer');
+  if (!container) return;
+
+  try {
+    const snapshot = await db.collection('orders')
+      .where('userId', '==', uid)
+      .orderBy('timestamp', 'desc')
+      .limit(5)
+      .get();
+
+    if (snapshot.empty) {
+      container.innerHTML = '<p style="color:#666; font-size:0.85rem;">Aucune commande pour le moment.</p>';
+      return;
+    }
+
+    container.innerHTML = snapshot.docs.map(doc => {
+      const order = doc.data();
+      const date = order.timestamp ? order.timestamp.toDate().toLocaleDateString('fr-FR') : 'Date inconnue';
+      return `
+        <div style="background:rgba(255,255,255,0.05); padding:12px; border-radius:10px; margin-bottom:10px; border-left: 3px solid #1E88E5;">
+          <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:5px;">
+            <span style="opacity:0.6;">${date}</span>
+            <span style="color:var(--accent); font-weight:600;">${order.status}</span>
+          </div>
+          <div style="font-weight:600; font-size:0.9rem;">${Number(order.total).toLocaleString()} FCFA</div>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    console.warn('Erreur chargement historique:', e);
+  }
+}
+
 function toggleWishlist(productId) {
   const index = wishlist.indexOf(productId);
   if (index > -1) {
@@ -27,7 +143,11 @@ async function loadBestSellers() {
   if (!container) return;
   
   try {
-    const snapshot = await db.collection('orders').get();
+    if (!window.db) {
+      console.warn('⚠️ Firestore not yet initialized for best sellers');
+      return;
+    }
+    const snapshot = await window.db.collection('orders').get();
     const productSales = {};
     
     snapshot.forEach(doc => {
@@ -99,7 +219,11 @@ let promoList = [];
 
 async function loadPromoCodesFromFirestore() {
   try {
-    const snapshot = await db.collection('promotions').where('active', '==', true).get();
+    if (!window.db) {
+      console.warn('⚠️ Firestore not yet initialized for promo codes');
+      return;
+    }
+    const snapshot = await window.db.collection('promotions').where('active', '==', true).get();
     promoList = snapshot.docs.map(doc => ({
       id: doc.id,
       code: doc.data().code,
@@ -164,7 +288,12 @@ async function subscribe() {
   }
 
   try {
-    await db.collection('newsletter').add({
+    if (!window.db) {
+      console.error('❌ Firestore not initialized');
+      showToast('⚠️ Service temporairement indisponible', 'error');
+      return;
+    }
+    await window.db.collection('newsletter').add({
       email,
       subscribedAt: firebase.firestore.FieldValue.serverTimestamp(),
       source: 'website'

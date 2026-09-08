@@ -62,7 +62,11 @@ async function loadInvoice() {
   }
 
   try {
-    const doc = await db.collection('orders').doc(orderId).get();
+    if (!window.db) {
+      showInvoiceError('Firebase non initialisé.');
+      return;
+    }
+    const doc = await window.db.collection('orders').doc(orderId).get();
     if (!doc.exists) {
       showInvoiceError('Commande introuvable.');
       return;

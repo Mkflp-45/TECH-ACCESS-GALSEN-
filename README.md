@@ -17,8 +17,14 @@ Ce projet est un site statique prêt pour un déploiement sur Netlify sans backe
 ## Firebase
 
 - Ce projet utilise Firebase Firestore pour synchroniser les produits.
-- Pour un déploiement en production, configure les règles Firestore de façon adaptée à ton usage.
+- Pour un déploiement en production, configure les règles Firestore de façon adaptée à ton usage, y compris `adminLogs` si tu veux conserver les journaux d’activité de l’admin.
 - Si tu veux migrer tes produits locaux vers Firestore, ouvre `migrate.html` et lance la migration.
+
+## Dépannage Admin
+
+- Si tu vois `Missing or insufficient permissions`, publie les règles Firestore avec `adminLogs` autorisé pour l’admin.
+- Si tu vois `ERR_BLOCKED_BY_CLIENT` sur `firestore.googleapis.com`, désactive temporairement ton bloqueur de pubs ou ton anti-tracking.
+- Ouvre `admin.html` via un serveur local comme Live Server ou `http://localhost`, pas en double-cliquant le fichier `file://`.
 
 ## Note
 

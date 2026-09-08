@@ -13,13 +13,13 @@ Tu utilises Firebase en production, donc il faut une configuration qui autorise 
 
 ### **Étape 2 : Remplacer les règles par celles-ci**
 
-Pour que l’application puisse lire et écrire les produits sans authentification :
+Version prête à coller. Remplace `VOTRE_EMAIL_ADMIN@GMAIL.COM` par l’email exact du compte admin Firebase Auth.
 
 ```
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Fonction de sécurité pour vérifier si l'utilisateur est l'admin
+    // Vérifie que l'utilisateur connecté correspond au compte admin
     function isAdmin() {
       return request.auth != null && request.auth.token.email == "VOTRE_EMAIL_ADMIN@GMAIL.COM";
     }
@@ -32,6 +32,10 @@ service cloud.firestore {
     match /settings/{document=**} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    match /adminLogs/{document=**} {
+      allow read, write: if isAdmin();
     }
 
     match /orders/{document=**} {
