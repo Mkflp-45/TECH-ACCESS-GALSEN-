@@ -1679,3 +1679,32 @@ footer {
   .product-name { font-size: 1rem; }
   .product-desc { font-size: 0.75rem; }
 }
+
+/* Product Detail Modal (ouvert via openProductDetail dans main-additions.js) */
+.product-detail-modal {
+  display: flex;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 3000;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  padding: 20px;
+}
+.product-detail-modal .modal-content {
+  background: var(--gray);
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+.product-detail-modal .product-detail-icon-fallback {
+  width: 100%;
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 6rem;
+  background: rgba(255,255,255,0.05);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}

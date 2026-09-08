@@ -1,0 +1,9 @@
+# ⚠️ Remplace TON-DOMAINE.com par ta vraie URL une fois le site en ligne.
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /admin
+Disallow: /migrate.html
+Disallow: /invoice.html
+
+Sitemap: https://TON-DOMAINE.com/sitemap.xml

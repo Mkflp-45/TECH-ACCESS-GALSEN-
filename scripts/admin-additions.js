@@ -164,74 +164,126 @@ async function loadCustomerStatistics() {
       }
       customerMap[whatsapp].purchases += 1;
       customerMap[whatsapp].totalSpent += Number(order.total) || 0;
+      if (order.timestamp && (!customerMap[whatsapp].lastOrder || order.timestamp.toMillis() > customerMap[whatsapp].lastOrder.toMillis())) {
+        customerMap[whatsapp].lastOrder = order.timestamp;
+      }
     });
     
     const topCustomers = Object.values(customerMap)
+      .filter(c => c.whatsapp)
       .sort((a, b) => b.totalSpent - a.totalSpent)
       .slice(0, 10);
-    
-    console.log('Top clients:', topCustomers);
+
     return topCustomers;
   } catch (e) {
     console.error('Erreur statistiques clients:', e);
   }
 }
 
-// ==================== EXPORT PDF FACTURES ====================
-async function exportInvoicePDF(orderId) {
+// ==================== PANEL CLIENTS (rendu) ====================
+async function loadCustomersPanel() {
+  const tbody = document.getElementById('customersTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Chargement...</td></tr>';
+
+  const customers = await loadCustomerStatistics();
+
+  if (!customers || customers.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Aucun client trouvé.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = customers.map(c => {
+    const lastOrderStr = c.lastOrder ? c.lastOrder.toDate().toLocaleDateString('fr-FR') : '—';
+    const safeWhatsapp = String(c.whatsapp).replace(/'/g, "\\'");
+    return `
+      <tr>
+        <td>${c.name || '—'}</td>
+        <td>${c.whatsapp || '—'}</td>
+        <td>${c.purchases}</td>
+        <td>${formatFCFA(c.totalSpent)}</td>
+        <td>${lastOrderStr}</td>
+        <td style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button class="btn-secondary" style="padding:6px 10px; font-size:0.7rem;" onclick="viewCustomerHistory('${safeWhatsapp}')">📋 Historique</button>
+          <button class="btn-secondary" style="padding:6px 10px; font-size:0.7rem;" onclick="contactCustomerWhatsApp('${safeWhatsapp}', '${c.name || ''}')">💬 Contacter</button>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+// ==================== CUSTOMER HISTORY ====================
+async function viewCustomerHistory(whatsapp) {
   try {
     if (!window.db) {
-      showToast('❌ Firebase non initialisé', 'error');
+      console.error('❌ Firestore not initialized');
       return;
     }
-    const orderDoc = await window.db.collection('orders').doc(orderId).get();
-    if (!orderDoc.exists) {
-      showToast('❌ Commande non trouvée', 'error');
-      return;
-    }
-    
-    const order = orderDoc.data();
-    let pdfContent = `
-    FACTURE — TECH ACCESS
-    ====================
-    
-    Numéro de commande: ${orderId}
-    Date: ${new Date(order.timestamp?.toDate()).toLocaleDateString('fr-FR')}
-    
-    CLIENT
-    ------
-    ${order.customer?.firstName} ${order.customer?.name}
-    ${order.customer?.whatsapp}
-    ${order.customer?.quartier}
-    
-    ARTICLES
-    --------`;
-    
-    (order.items || []).forEach(item => {
-      const price = (Number(item.price) * currentData.exchangeRate).toFixed(0);
-      const total = (price * item.qty).toFixed(0);
-      pdfContent += `\n${item.qty}x ${item.name} - ${price} FCFA = ${total} FCFA`;
-    });
-    
-    pdfContent += `\n\nTOTAL: ${order.total} FCFA
-    Statut: ${order.status}
-    
-    Merci pour votre achat!
-    `;
-    
-    const blob = new Blob([pdfContent], { type: 'text/plain;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `facture-${orderId}.txt`;
-    link.click();
-    
-    logAdminActivity('EXPORT_INVOICE', orderId);
-    showToast('✅ Facture téléchargée', 'success');
+    const orders = await window.db.collection('orders').where('customer.whatsapp', '==', whatsapp).orderBy('timestamp', 'desc').get();
+    const ordersList = orders.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    showCustomerHistoryModal(whatsapp, ordersList);
+    return ordersList;
   } catch (e) {
-    console.error('Erreur export facture:', e);
-    showToast('❌ Erreur export facture', 'error');
+    console.error('Erreur historique client:', e);
+    showToast('❌ Erreur lors du chargement de l\'historique', 'error');
   }
 }
+
+function showCustomerHistoryModal(whatsapp, ordersList) {
+  const modal = document.createElement('div');
+  modal.className = 'product-detail-modal';
+  modal.onclick = (e) => e.target === modal && modal.remove();
+
+  const rows = ordersList.length === 0
+    ? '<tr><td colspan="4" style="text-align:center; padding:16px;">Aucune commande trouvée.</td></tr>'
+    : ordersList.map(order => {
+        const dateStr = order.timestamp ? order.timestamp.toDate().toLocaleDateString('fr-FR') : '—';
+        return `
+          <tr>
+            <td>${dateStr}</td>
+            <td>${formatFCFA(order.total || 0)}</td>
+            <td>${order.status || '—'}</td>
+            <td><a href="invoice.html?id=${order.id}" target="_blank" style="color: var(--accent2);">Voir facture</a></td>
+          </tr>`;
+      }).join('');
+
+  modal.innerHTML = `
+    <div class="modal-content" style="position:relative; border-radius:16px; padding:40px; max-width:700px; max-height:80vh; overflow-y:auto;">
+      <button style="position:absolute; top:20px; right:20px; background:none; border:none; color:#fff; font-size:24px; cursor:pointer;" onclick="this.closest('.product-detail-modal').remove()">✕</button>
+      <h2 style="font-size:1.5rem; margin-bottom:4px;">Historique — ${whatsapp}</h2>
+      <p style="opacity:0.7; margin-bottom:20px;">${ordersList.length} commande(s)</p>
+      <div class="table-container">
+        <table>
+          <thead><tr><th>Date</th><th>Total</th><th>Statut</th><th>Facture</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+// ==================== CONTACT WHATSAPP (lien wa.me, sans configuration requise) ====================
+function contactCustomerWhatsApp(whatsapp, name) {
+  let digits = String(whatsapp || '').replace(/\D/g, '');
+  if (digits.startsWith('0')) digits = digits.slice(1);
+  if (digits.length === 9 || digits.length === 8) digits = '221' + digits;
+  if (!digits) {
+    showToast('❌ Numéro WhatsApp invalide', 'error');
+    return;
+  }
+  const message = `Bonjour ${name || ''}, ici TECH ACCESS. `;
+  window.open(`https://wa.me/${digits}?text=${encodeURIComponent(message)}`, '_blank');
+  logAdminActivity('WHATSAPP_CONTACT', whatsapp);
+}
+
+// Note : voir/exporter une facture se fait via le bouton "📄 Facture" du
+// tableau des ventes, ou "Voir facture" dans l'historique client — les deux
+// ouvrent invoice.html?id=..., qui permet d'imprimer en PDF via le navigateur.
+
 
 // ==================== IMAGE MANAGEMENT ====================
 function initImageUpload() {
@@ -372,53 +424,6 @@ async function scheduledPromoCheck() {
     });
   } catch (e) {
     console.error('Erreur vérification promos:', e);
-  }
-}
-
-// ==================== CUSTOMER HISTORY ====================
-async function viewCustomerHistory(whatsapp) {
-  try {
-    if (!window.db) {
-      console.error('❌ Firestore not initialized');
-      return;
-    }
-    const orders = await window.db.collection('orders').where('customer.whatsapp', '==', whatsapp).get();
-    const ordersList = orders.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    
-    console.log(`Historique client ${whatsapp}:`, ordersList);
-    showToast(`✅ ${ordersList.length} commandes trouvées`, 'success');
-    return ordersList;
-  } catch (e) {
-    console.error('Erreur historique client:', e);
-  }
-}
-
-// ==================== WHATSAPP INTEGRATION ====================
-async function sendWhatsAppNotification(whatsapp, message) {
-  try {
-    // Cette intégration nécessite une API externe ou webhook
-    // Exemple avec URL webhook (adapter avec votre service)
-    const webhookUrl = localStorage.getItem('whatsappWebhookUrl');
-    if (!webhookUrl) {
-      console.warn('Webhook WhatsApp non configuré');
-      return;
-    }
-    
-    await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        to: whatsapp,
-        message: message
-      })
-    });
-    
-    logAdminActivity('WHATSAPP_SENT', whatsapp);
-  } catch (e) {
-    console.error('Erreur WhatsApp:', e);
   }
 }
 

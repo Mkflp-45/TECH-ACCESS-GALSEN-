@@ -7,15 +7,13 @@ const isMobile = () => window.innerWidth <= 768;
 let adminData = {
   products: [],
   categories: [
-    { id: 1, name: 'Powerbanks', backgroundImage: 'https://via.placeholder.com/200?text=Powerbanks' },
-    { id: 2, name: 'Coques', backgroundImage: 'https://via.placeholder.com/200?text=Coques' },
-    { id: 3, name: 'Câbles & Chargeurs', backgroundImage: 'https://via.placeholder.com/200?text=Câbles' },
-    { id: 4, name: 'Audio', backgroundImage: 'https://via.placeholder.com/200?text=Audio' }
+    { id: 1, name: 'Powerbanks', backgroundImage: 'https://placehold.co/200x200?text=Powerbanks' },
+    { id: 2, name: 'Coques', backgroundImage: 'https://placehold.co/200x200?text=Coques' },
+    { id: 3, name: 'Câbles & Chargeurs', backgroundImage: 'https://placehold.co/200x200?text=Câbles' },
+    { id: 4, name: 'Audio', backgroundImage: 'https://placehold.co/200x200?text=Audio' }
   ],
   ticker: ['LIVRAISON GRATUITE dès 50€', 'ACCESSOIRES PREMIUM', 'TECH ACCESSIBLE A TOUS', 'GARANTIE 2 ANS', 'DAKAR PLATEAU', 'SUPPORT 7J/7'],
   exchangeRate: 655
-  // Les clés Mobile Money ne vivent plus ici : elles sont côté serveur uniquement,
-  // dans la fonction Netlify netlify/functions/initiate-payment.js
 };
 
 // Fallback local products for a fully dynamic vanilla site even when Firestore is unreachable
@@ -99,11 +97,9 @@ function productBelongsToCategory(product, category) {
 
 async function loadAllDataFromFirestore() {
   try {
-    console.log('📥 Initialisation des données...');
     const settingsDoc = await window.db.collection('settings').doc('config').get();
     if (settingsDoc.exists) {
       const settings = settingsDoc.data();
-      console.log('🔍 Données brutes de Firestore (settings/config):', settings);
       if (Array.isArray(settings.categories) && settings.categories.length > 0) {
         adminData.categories = normalizeCategoryList(settings.categories);
       }
@@ -111,7 +107,6 @@ async function loadAllDataFromFirestore() {
         adminData.ticker = settings.ticker;
       }
       adminData.exchangeRate = settings.exchangeRate || 655;
-      console.log('✅ Catégories chargées dans adminData:', adminData.categories);
     } else {
       console.warn('⚠️ Document settings/config n\'existe pas dans Firestore');
     }
@@ -127,11 +122,6 @@ async function loadAllDataFromFirestore() {
       console.warn('⚠️ Pas de produits Firestore, utilisation du catalogue local de secours');
     }
 
-    console.log('✅ Données prêtes:', {
-      categories: adminData.categories,
-      products: adminData.products.length,
-      exchangeRate: adminData.exchangeRate
-    });
     initializePage();
     syncFirestoreData();
   } catch (error) {
@@ -144,7 +134,6 @@ function syncFirestoreData() {
   window.db.collection('settings').doc('config').onSnapshot(doc => {
     if (doc.exists) {
       const data = doc.data();
-      console.log('🔄 Mise à jour Firestore reçue (settings/config):', data);
       if (Array.isArray(data.categories) && data.categories.length > 0) {
         adminData.categories = normalizeCategoryList(data.categories);
       }
@@ -218,59 +207,17 @@ function toggleCart() {
 }
 
 /**
- * Initie un paiement via l'API Mobile Money
+ * Redirige le client vers le lien de paiement marchand Wave, montant inclus.
+ * Aucune clé API n'est nécessaire : c'est un lien Wave public, l'utilisateur
+ * saisit lui-même sa confirmation dans l'app Wave.
  */
-async function initiateMobileMoneyPayment(orderData) {
-  try {
-    showLoadingState(true);
-    showToast('⏳ Initialisation du paiement...');
+const WAVE_PAYMENT_LINK = 'https://pay.wave.com/m/M_sn_Bg4an4f38jXi/c/sn';
 
-    const paymentPayload = {
-      amount: Math.round(orderData.total * adminData.exchangeRate), // Convertir en FCFA
-      orderId: orderData.orderToken,
-      customerName: `${orderData.customer.firstName} ${orderData.customer.name}`,
-      customerPhone: orderData.customer.whatsapp,
-      description: `Commande TECH-ACCESS #${orderData.orderToken.substring(0, 8)}`,
-      returnUrl: window.location.origin + window.location.pathname,
-      notifyUrl: window.location.origin + '/api/webhook/payment' // À configurer côté serveur
-    };
-
-    // On appelle notre propre fonction serverless (netlify/functions/initiate-payment.js),
-    // qui seule connaît les clés API/secrète, gardées côté serveur.
-    const response = await fetch('/.netlify/functions/initiate-payment', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(paymentPayload)
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Erreur initialisation paiement');
-    }
-
-    const result = await response.json();
-
-    if (result.paymentUrl) {
-      // Rediriger vers la page de paiement
-      window.location.href = result.paymentUrl;
-    } else if (result.checkoutId) {
-      // Alternative: afficher un checkout modal
-      // ⚠️ L'URL de checkout doit être fournie par le vrai fournisseur de paiement
-      // (via result.checkoutUrl par ex.) une fois l'intégration réelle branchée.
-      showToast('✅ Redirection vers le paiement...');
-      window.location.href = result.checkoutUrl || result.paymentUrl;
-    } else {
-      throw new Error('Réponse API invalide');
-    }
-  } catch (error) {
-    console.error('Erreur paiement:', error);
-    showToast(`❌ Erreur: ${error.message}`);
-  } finally {
-    showLoadingState(false);
-    return;
-  }
+function redirectToWavePayment(orderData) {
+  const amountFCFA = Math.round(orderData.total * adminData.exchangeRate);
+  const waveUrl = `${WAVE_PAYMENT_LINK}?amount=${amountFCFA}`;
+  showToast('⏳ Redirection vers Wave...');
+  window.location.href = waveUrl;
 }
 
 function addToCart(productId) {
@@ -337,14 +284,14 @@ function checkout() {
 
   const total = getCartTotal();
   const method = document.querySelector('input[name="paymentMethod"]:checked').value;
-  if (method === 'mobilemoney') {
+  if (method === 'wave') {
     processPayment();
   } else if (method === 'cash') {
     document.getElementById('cartMessage').textContent = '';
     openCustomerModal(total);
   } else {
     showToast('Mode de paiement non pris en charge.');
-    document.getElementById('cartMessage').textContent = 'Veuillez sélectionner Mobile Money ou espèces.';
+    document.getElementById('cartMessage').textContent = 'Veuillez sélectionner Wave ou espèces.';
   }
 }
 
@@ -408,22 +355,21 @@ async function submitCustomerForm(event) {
       qty: item.qty
     })),
     total: total,
-    paymentMethod: method === 'cash' ? 'Espèces' : 'Mobile Money',
-    status: method === 'mobilemoney' ? 'En attente - paiement en cours' : 'En attente - paiement en espèces',
+    paymentMethod: method === 'cash' ? 'Espèces' : 'Wave',
+    status: method === 'wave' ? 'En attente - paiement en cours' : 'En attente - paiement en espèces',
     orderToken,
     userId: firebase.auth().currentUser ? firebase.auth().currentUser.uid : null,
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   };
 
   try {
-    // Si paiement Mobile Money, enregistrer la commande et rediriger
-    if (method === 'mobilemoney') {
+    // Si paiement Wave, enregistrer la commande et rediriger vers le lien Wave
+    if (method === 'wave') {
       await window.db.collection('orders').add(orderData);
-      showToast('⏳ Redirection vers le paiement...');
       closeCustomerModal();
-      
-      // Lancer le paiement Mobile Money
-      await initiateMobileMoneyPayment(orderData);
+
+      // Rediriger vers le lien de paiement marchand Wave
+      redirectToWavePayment(orderData);
       return;
     }
 
@@ -516,7 +462,7 @@ function renderCategories() {
     const catId = cat.id || cat.name || 'unknown';
     const catName = cat.name || cat.title || cat.label || String(catId);
     const categorySlug = cat.slug || normalizeCategorySlug(catId);
-    const backgroundImage = cat.backgroundImage || 'https://via.placeholder.com/200?text=' + encodeURIComponent(catName);
+    const backgroundImage = cat.backgroundImage || 'https://placehold.co/200x200?text=' + encodeURIComponent(catName);
     const count = adminData.products.filter(product => productBelongsToCategory(product, cat)).length;
     const bgStyle = `background-image: url('${backgroundImage}'); background-size: cover; background-position: center;`;
     return `
@@ -604,19 +550,6 @@ function initializeAutoTicker(container) {
   container.addEventListener('lostpointercapture', finishDrag);
 }
 
-function safeScrollBy(container, left) {
-  if (!container || !left) return;
-  if (typeof container.scrollBy === 'function') {
-    try {
-      container.scrollBy(left, 0);
-      return;
-    } catch (err) {
-      // fallback to manual scrollLeft if numeric scrollBy is unavailable
-    }
-  }
-  container.scrollLeft += left;
-}
-
 function moveCategories(direction) {
   const container = document.getElementById('categoriesContainer');
   if (!container) return;
@@ -676,7 +609,7 @@ function renderProducts() {
       const productHTML = catProducts.map(product => {
         const priceFCFA = Math.round(Number(product.price) * (adminData.exchangeRate || 655));
         return `
-          <div class="product-card" style="user-select: none; -webkit-user-select: none; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer;" draggable="false" ondragstart="return false;">
+          <div class="product-card" style="user-select: none; -webkit-user-select: none; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer;" draggable="false" ondragstart="return false;" onclick="openProductDetail('${product.id}')">
             <div class="product-img" style="font-size: 0; pointer-events: none; -webkit-user-drag: none;">
               ${product.image ? `<img src="${product.image}" loading="lazy" decoding="async" width="400" height="280" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" draggable="false" ondragstart="return false;">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
               ${product.badge ? `<div class="product-badge ${product.badge.toLowerCase().includes('nouveau') ? 'new' : ''}" style="text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">${product.badge}</div>` : ''}
@@ -687,7 +620,7 @@ function renderProducts() {
               <div class="product-desc" style="opacity: 0.7; font-size: 0.85rem; line-height: 1.3;">${product.desc || ''}</div>
               <div class="product-bottom" style="pointer-events: auto;">
                 <div class="product-price">${priceFCFA.toLocaleString()} FCFA</div>
-                <button type="button" class="add-btn" onclick="addToCart('${product.id}')">+</button>
+                <button type="button" class="add-btn" onclick="event.stopPropagation(); addToCart('${product.id}')">+</button>
               </div>
             </div>
           </div>`;
@@ -716,7 +649,7 @@ function renderProducts() {
           ${otherProducts.map(product => {
             const priceFCFA = Math.round(Number(product.price) * (adminData.exchangeRate || 655));
             return `
-              <div class="product-card" style="user-select: none; -webkit-user-select: none; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer;" draggable="false">
+              <div class="product-card" style="user-select: none; -webkit-user-select: none; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer;" draggable="false" onclick="openProductDetail('${product.id}')">
                 <div class="product-img" style="font-size: 0; pointer-events: none;">
                   ${product.image ? `<img src="${product.image}" loading="lazy" decoding="async" width="400" height="280" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" draggable="false">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
                 </div>
@@ -726,7 +659,7 @@ function renderProducts() {
                   <div class="product-desc" style="opacity: 0.7; font-size: 0.85rem; line-height: 1.3;">${product.desc || ''}</div>
                   <div class="product-bottom" style="pointer-events: auto;">
                     <div class="product-price">${priceFCFA.toLocaleString()} FCFA</div>
-                    <button type="button" class="add-btn" onclick="addToCart('${product.id}')">+</button>
+                    <button type="button" class="add-btn" onclick="event.stopPropagation(); addToCart('${product.id}')">+</button>
                   </div>
                 </div>
               </div>`;

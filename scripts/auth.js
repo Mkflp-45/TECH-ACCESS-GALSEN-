@@ -55,7 +55,6 @@ async function loadUserProfile(uid) {
     
     if (docSnap.exists) {
       userProfile = docSnap.data();
-      console.log("Profil utilisateur chargé:", userProfile);
     } else {
       console.log("Profil utilisateur n'existe pas encore");
       userProfile = {

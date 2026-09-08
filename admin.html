@@ -56,6 +56,7 @@
         <button class="sidebar-btn" onclick="switchPanel('products', this)">📦 Produits</button>
         <button class="sidebar-btn" onclick="switchPanel('categories', this)">🏷️ Catégories</button>
         <button class="sidebar-btn" onclick="switchPanel('sales', this)">💰 Ventes</button>
+        <button class="sidebar-btn" onclick="switchPanel('customers', this)">👥 Clients</button>
         <button class="sidebar-btn" onclick="switchPanel('finance', this)">💼 Finances</button>
         <button class="sidebar-btn" onclick="switchPanel('inventory', this)">📦 Inventaire</button>
         <button class="sidebar-btn" onclick="switchPanel('support', this)">🛠️ Support</button>
@@ -100,6 +101,10 @@
             <div class="stat-value" id="statRevenue">0 FCFA</div>
             <div class="stat-label">Revenu Total</div>
           </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statTopProduct" style="font-size: 1.1rem;">—</div>
+            <div class="stat-label">Produit le plus vendu</div>
+          </div>
         </div>
 
         <div class="section-title" style="margin-top: 30px;">KPIs AVANCÉS</div>
@@ -130,7 +135,10 @@
         <div class="section-title">GESTION DES PRODUITS</div>
         
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px; flex-wrap: wrap;">
-          <button class="btn-primary" onclick="openProductModal()">➕ Ajouter un produit</button>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn-primary" onclick="openProductModal()">➕ Ajouter un produit</button>
+            <span id="csvImportContainer"></span>
+          </div>
           
           <div style="display: flex; gap: 10px; flex: 1; min-width: 300px;">
             <input type="text" id="productSearch" placeholder="🔍 Rechercher par nom..." oninput="filterProducts()" style="margin-bottom: 0; flex: 2;">
@@ -210,6 +218,30 @@
               </tr>
             </thead>
             <tbody id="salesTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CLIENTS -->
+      <div class="panel" id="customers">
+        <div class="section-title">CLIENTS</div>
+        <p style="opacity: 0.7; font-size: 0.85rem; margin-bottom: 20px;">Top 10 des clients par montant dépensé, calculé à partir des commandes enregistrées.</p>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>WhatsApp</th>
+                <th>Achats</th>
+                <th>Total dépensé</th>
+                <th>Dernière commande</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="customersTableBody">
+              <tr><td colspan="6" style="text-align:center">Chargement...</td></tr>
+            </tbody>
           </table>
         </div>
       </div>
@@ -510,9 +542,7 @@
         </div>
         
         <p style="opacity: 0.7; font-size: 0.9em; margin: 12px 0;">
-          🔒 Les clés Mobile Money ne se configurent plus ici pour des raisons de sécurité.
-          Elles se règlent dans Netlify : Site settings → Environment variables
-          (<code>MOBILE_MONEY_API_KEY</code>, <code>MOBILE_MONEY_SECRET_KEY</code>).
+          🔒 Le paiement se fait via un lien Wave codé dans scripts/main.js — aucune clé API n'est nécessaire (voir WAVE-PAYMENT-SETUP.md).
         </p>
 
         <button class="btn-primary" onclick="saveSettings()">💾 Enregistrer les paramètres</button>

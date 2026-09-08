@@ -320,9 +320,11 @@ function openProductDetail(productId) {
   const stock = Number(product.stock || 0);
 
   modal.innerHTML = `
-    <div class="modal-content" style="position:relative; background:var(--black); border-radius:16px; padding:40px; max-width:600px; max-height:80vh; overflow-y:auto;">
+    <div class="modal-content" style="position:relative; border-radius:16px; padding:40px; max-width:600px; max-height:80vh; overflow-y:auto;">
       <button style="position:absolute; top:20px; right:20px; background:none; border:none; color:#fff; font-size:24px; cursor:pointer;" onclick="this.closest('.product-detail-modal').remove()">✕</button>
-      <img src="${product.image || product.icon}" alt="${product.name}" style="width:100%; height:300px; object-fit:cover; border-radius:12px; margin-bottom:20px;">
+      ${product.image
+        ? `<img src="${product.image}" alt="${product.name}" style="width:100%; height:300px; object-fit:cover; border-radius:12px; margin-bottom:20px;">`
+        : `<div class="product-detail-icon-fallback">${product.icon || '📦'}</div>`}
       <h2 style="font-size:1.8rem; margin-bottom:8px;">${product.name}</h2>
       <p style="color:#aaa; margin-bottom:16px;">${product.category}</p>
       <p style="font-size:1.2rem; color:var(--accent2); margin-bottom:16px; font-weight:700;">${priceFCFA} FCFA</p>

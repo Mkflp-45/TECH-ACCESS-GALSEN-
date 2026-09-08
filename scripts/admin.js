@@ -45,10 +45,10 @@ let currentData = {
     }
   ],
   categories: [
-    { id: 1, name: 'Powerbanks', icon: '🔋', backgroundImage: 'https://via.placeholder.com/200?text=Powerbanks' },
-    { id: 2, name: 'Coques', icon: '🛡️', backgroundImage: 'https://via.placeholder.com/200?text=Coques' },
-    { id: 3, name: 'Câbles & Chargeurs', icon: '🔌', backgroundImage: 'https://via.placeholder.com/200?text=Câbles' },
-    { id: 4, name: 'Audio', icon: '🎧', backgroundImage: 'https://via.placeholder.com/200?text=Audio' }
+    { id: 1, name: 'Powerbanks', icon: '🔋', backgroundImage: 'https://placehold.co/200x200?text=Powerbanks' },
+    { id: 2, name: 'Coques', icon: '🛡️', backgroundImage: 'https://placehold.co/200x200?text=Coques' },
+    { id: 3, name: 'Câbles & Chargeurs', icon: '🔌', backgroundImage: 'https://placehold.co/200x200?text=Câbles' },
+    { id: 4, name: 'Audio', icon: '🎧', backgroundImage: 'https://placehold.co/200x200?text=Audio' }
   ],
   ticker: ['LIVRAISON GRATUITE dès 50€', 'ACCESSOIRES PREMIUM', 'TECH ACCESSIBLE A TOUS', 'GARANTIE 2 ANS', 'DAKAR PLATEAU', 'SUPPORT 7J/7'],
   exchangeRate: 655
@@ -125,6 +125,12 @@ function showAdmin() {
   renderTicker();
   loadCategorySelect();
   updateFilterCategories();
+
+  // Brancher le bouton d'import CSV (une seule fois)
+  const csvContainer = document.getElementById('csvImportContainer');
+  if (csvContainer && !csvContainer.hasChildNodes() && typeof initCSVImport === 'function') {
+    csvContainer.appendChild(initCSVImport());
+  }
 }
 
 function filterProducts() {
@@ -155,7 +161,6 @@ async function loadData() {
     }
     const productsSnap = await window.db.collection('products').get();
     currentData.products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    console.log('📦 Produits chargés depuis le Cloud:', currentData.products.length);
   } catch (error) {
     console.error('Erreur de chargement Firebase:', error);
     showToast('❌ Erreur de connexion au Cloud', 'error');
@@ -299,6 +304,7 @@ function switchPanel(panel, button) {
   if (button) button.classList.add('active');
   toggleAdminMenu(false);
   if (panel === 'sales') loadOrders();
+  if (panel === 'customers') loadCustomersPanel();
   if (panel === 'finance') loadFinances();
   if (panel === 'inventory') loadInventory();
   if (panel === 'support') loadSupportTickets();
