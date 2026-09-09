@@ -363,13 +363,22 @@ async function submitCustomerForm(event) {
   };
 
   try {
-    // Si paiement Wave, enregistrer la commande et rediriger vers le lien Wave
+    // Si paiement Wave : rediriger IMMÉDIATEMENT, sans attendre Firestore.
+    // Important : sur mobile, Wave utilise un "lien universel" qui n'ouvre
+    // l'app que si la redirection est déclenchée de façon synchrone avec le
+    // clic de l'utilisateur. Le moindre "await" avant window.location.href
+    // casse ce lien avec le geste utilisateur, et le téléphone retombe sur
+    // une simple page web qui redirige vers l'App Store/Play Store au lieu
+    // d'ouvrir l'app Wave.
     if (method === 'wave') {
-      await window.db.collection('orders').add(orderData);
       closeCustomerModal();
-
-      // Rediriger vers le lien de paiement marchand Wave
       redirectToWavePayment(orderData);
+      // Enregistrement de la commande en arrière-plan (best-effort) : la
+      // navigation vers Wave va suivre immédiatement, donc on n'attend pas
+      // cette écriture.
+      window.db.collection('orders').add(orderData).catch(err => {
+        console.error('Erreur enregistrement commande (Wave):', err);
+      });
       return;
     }
 

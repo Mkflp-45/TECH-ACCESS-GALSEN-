@@ -713,8 +713,8 @@ async function loadOrders(filter = 'all') {
       return `
         <tr>
           <td><div style="font-size: 0.75rem;">${date}</div><div style="font-size: 0.6rem; color: var(--mid)">ID: ${order.id.substring(0,8)}</div></td>
-          <td><div style="font-weight:700">${order.customer.firstName} ${order.customer.name}</div><div style="font-size: 0.7rem;">📍 ${order.customer.quartier}</div></td>
-          <td style="font-size: 0.75rem;">${(order.items || []).map(i => `${i.qty}x ${i.name}`).join('<br>')}</td>
+          <td><div style="font-weight:700">${escapeHtml(order.customer.firstName)} ${escapeHtml(order.customer.name)}</div><div style="font-size: 0.7rem;">📍 ${escapeHtml(order.customer.quartier)}</div></td>
+          <td style="font-size: 0.75rem;">${(order.items || []).map(i => `${Number(i.qty)||0}x ${escapeHtml(i.name)}`).join('<br>')}</td>
           <td style="font-weight:700; color:var(--accent2)">${formatFCFA(order.total)}</td>
           <td>
             <select onchange="updateOrderStatus('${order.id}', this.value)" style="padding:4px; background:${statusColor}; color:white; border:none; border-radius:4px; font-weight:bold;">
@@ -743,6 +743,22 @@ async function deleteOrder(id) {
 
 function formatFCFA(value) {
   return Number(value || 0).toLocaleString('fr-FR') + ' FCFA';
+}
+
+/**
+ * Échappe une chaîne avant de l'insérer dans du innerHTML.
+ * INDISPENSABLE pour toute donnée saisie par un client (nom, quartier, etc.) :
+ * sans ça, un client malveillant pourrait injecter du HTML/JS exécuté dans le
+ * navigateur de l'admin quand il consulte les commandes (XSS stocké).
+ */
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function loadInventory() {

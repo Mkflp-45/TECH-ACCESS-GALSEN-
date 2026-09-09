@@ -195,17 +195,21 @@ async function loadCustomersPanel() {
 
   tbody.innerHTML = customers.map(c => {
     const lastOrderStr = c.lastOrder ? c.lastOrder.toDate().toLocaleDateString('fr-FR') : '—';
-    const safeWhatsapp = String(c.whatsapp).replace(/'/g, "\\'");
+    // whatsapp est déjà garanti "sûr" par la validation regex au checkout
+    // (chiffres uniquement), donc pas besoin de l'échapper pour l'attribut
+    // onclick. Le NOM en revanche est du texte libre saisi par le client :
+    // on ne le passe jamais dans un attribut onclick (une simple apostrophe
+    // suffirait à injecter du JS). On le récupère via un lookup à la place.
     return `
       <tr>
-        <td>${c.name || '—'}</td>
-        <td>${c.whatsapp || '—'}</td>
+        <td>${escapeHtml(c.name)}</td>
+        <td>${escapeHtml(c.whatsapp)}</td>
         <td>${c.purchases}</td>
         <td>${formatFCFA(c.totalSpent)}</td>
         <td>${lastOrderStr}</td>
         <td style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button class="btn-secondary" style="padding:6px 10px; font-size:0.7rem;" onclick="viewCustomerHistory('${safeWhatsapp}')">📋 Historique</button>
-          <button class="btn-secondary" style="padding:6px 10px; font-size:0.7rem;" onclick="contactCustomerWhatsApp('${safeWhatsapp}', '${c.name || ''}')">💬 Contacter</button>
+          <button class="btn-secondary" style="padding:6px 10px; font-size:0.7rem;" onclick="viewCustomerHistory('${c.whatsapp}')">📋 Historique</button>
+          <button class="btn-secondary" style="padding:6px 10px; font-size:0.7rem;" onclick="contactCustomerWhatsApp('${c.whatsapp}', this)">💬 Contacter</button>
         </td>
       </tr>`;
   }).join('');
@@ -267,7 +271,7 @@ function showCustomerHistoryModal(whatsapp, ordersList) {
 }
 
 // ==================== CONTACT WHATSAPP (lien wa.me, sans configuration requise) ====================
-function contactCustomerWhatsApp(whatsapp, name) {
+function contactCustomerWhatsApp(whatsapp, buttonEl) {
   let digits = String(whatsapp || '').replace(/\D/g, '');
   if (digits.startsWith('0')) digits = digits.slice(1);
   if (digits.length === 9 || digits.length === 8) digits = '221' + digits;
@@ -275,7 +279,14 @@ function contactCustomerWhatsApp(whatsapp, name) {
     showToast('❌ Numéro WhatsApp invalide', 'error');
     return;
   }
-  const message = `Bonjour ${name || ''}, ici TECH ACCESS. `;
+  // Le nom est récupéré via le DOM (textContent = toujours du texte brut, ne
+  // peut jamais injecter de code), jamais transmis via un attribut onclick.
+  let name = '';
+  if (buttonEl) {
+    const row = buttonEl.closest('tr');
+    if (row && row.firstElementChild) name = row.firstElementChild.textContent.trim();
+  }
+  const message = `Bonjour ${name}, ici TECH ACCESS. `;
   window.open(`https://wa.me/${digits}?text=${encodeURIComponent(message)}`, '_blank');
   logAdminActivity('WHATSAPP_CONTACT', whatsapp);
 }
