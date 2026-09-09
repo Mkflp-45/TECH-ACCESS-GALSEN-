@@ -16,7 +16,9 @@ Dans `scripts/main.js` :
 const WAVE_PAYMENT_LINK = 'https://pay.wave.com/m/M_sn_Bg4an4f38jXi/c/sn';
 
 function redirectToWavePayment(orderData) {
-  const amountFCFA = Math.round(orderData.total * adminData.exchangeRate);
+  // orderData.total est déjà en FCFA (getCartTotal() convertit déjà) :
+  // ne pas remultiplier par exchangeRate ici.
+  const amountFCFA = Math.round(orderData.total);
   window.location.href = `${WAVE_PAYMENT_LINK}?amount=${amountFCFA}`;
 }
 ```

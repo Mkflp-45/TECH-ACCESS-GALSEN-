@@ -214,7 +214,10 @@ function toggleCart() {
 const WAVE_PAYMENT_LINK = 'https://pay.wave.com/m/M_sn_Bg4an4f38jXi/c/sn';
 
 function redirectToWavePayment(orderData) {
-  const amountFCFA = Math.round(orderData.total * adminData.exchangeRate);
+  // orderData.total est déjà en FCFA : getCartTotal() fait déjà
+  // `prix_euros * adminData.exchangeRate`. Ne PAS remultiplier ici, sinon
+  // le montant envoyé à Wave est 655x trop élevé.
+  const amountFCFA = Math.round(orderData.total);
   const waveUrl = `${WAVE_PAYMENT_LINK}?amount=${amountFCFA}`;
   showToast('⏳ Redirection vers Wave...');
   window.location.href = waveUrl;
