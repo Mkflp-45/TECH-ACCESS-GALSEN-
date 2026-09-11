@@ -31,6 +31,13 @@
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <meta name="theme-color" content="#0D47A1">
 
+<!-- PWA : permet d'installer le site comme une app sur mobile -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TECH ACCESS">
+
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles/main.css?v=mobilefix-1">
 
@@ -102,14 +109,14 @@
     <li><a href="#produits">Produits</a></li>
     <li><a href="#promo">Promo</a></li>
     <li><a href="#contact">Contact</a></li>
-  </ul>
-  <div class="nav-right">
-    <div id="authNav">
+    <li id="authNav">
       <button class="account-btn" onclick="openAuthModal()" id="loginBtn">👤 Connexion</button>
       <button class="account-btn" onclick="toggleAccountDashboard()" id="userAccountBtn" style="display:none;">
         👤 <span id="userNameDisplay">Compte</span>
       </button>
-    </div>
+    </li>
+  </ul>
+  <div class="nav-right">
     <button class="cart-btn" id="cartBtn" onclick="toggleCart()">
       🛒 Panier
       <div class="cart-count" id="cartCount">0</div>
@@ -386,12 +393,22 @@
         </div>
       </div>
 
-      <div class="account-section-title" style="color:var(--accent); font-weight:600; margin:25px 0 15px 0; font-size:0.9rem;">MES INFOS</div>
+      <div class="account-section-title" style="color:var(--accent); font-weight:600; margin:25px 0 15px 0; font-size:0.9rem; display:flex; justify-content:space-between; align-items:center;">
+        MES INFOS
+        <button type="button" onclick="toggleEditProfile()" id="editProfileToggleBtn" style="background:none; border:none; color:var(--accent); cursor:pointer; font-size:0.8rem;">✏️ Modifier</button>
+      </div>
       <div id="userInfoSummary" style="font-size:0.9rem; line-height:1.8; opacity:0.8;">
         <p>📍 <span id="dashQuartier">-</span></p>
         <p>📞 <span id="dashPhone">-</span></p>
         <p>✉️ <span id="dashEmail">-</span></p>
       </div>
+      <form id="editProfileForm" style="display:none; margin-top:10px;" onsubmit="handleUpdateProfile(event)">
+        <div class="customer-form-group"><label>Quartier</label><input type="text" id="editQuartier" required></div>
+        <div class="customer-form-group"><label>Téléphone WhatsApp</label><input type="tel" id="editPhone" required></div>
+        <p style="font-size:0.75rem; opacity:0.6; margin:6px 0 12px;">L'email ne peut pas être modifié ici pour des raisons de sécurité.</p>
+        <button type="submit" class="btn-pay" style="width:100%; margin-bottom:8px;">💾 Enregistrer</button>
+        <button type="button" class="btn-cancel" style="width:100%;" onclick="toggleEditProfile()">Annuler</button>
+      </form>
     </div>
   </div>
 

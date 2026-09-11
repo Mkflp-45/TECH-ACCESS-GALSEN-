@@ -213,6 +213,35 @@ function toggleCart() {
  */
 const WAVE_PAYMENT_LINK = 'https://pay.wave.com/m/M_sn_Bg4an4f38jXi/c/sn';
 
+/**
+ * Décrémente le stock de chaque produit commandé, de façon atomique (via
+ * une transaction Firestore par produit, pour éviter que deux commandes
+ * simultanées ne survendent le même produit). Ne bloque jamais la commande
+ * elle-même si un décrément échoue — c'est un "best effort" : en dernier
+ * recours, l'admin peut toujours corriger le stock à la main dans le panel.
+ */
+async function decrementStockForOrder(items) {
+  if (!window.db || !Array.isArray(items)) return;
+  for (const item of items) {
+    if (!item.id) continue;
+    try {
+      await window.db.runTransaction(async (tx) => {
+        const ref = window.db.collection('products').doc(String(item.id));
+        const snap = await tx.get(ref);
+        if (!snap.exists) return;
+        const currentStock = Number(snap.data().stock);
+        if (isNaN(currentStock)) return; // produit sans suivi de stock
+        const newStock = Math.max(0, currentStock - (Number(item.qty) || 1));
+        if (newStock < currentStock) {
+          tx.update(ref, { stock: newStock });
+        }
+      });
+    } catch (e) {
+      console.error(`Erreur décrément stock pour le produit ${item.id}:`, e);
+    }
+  }
+}
+
 function redirectToWavePayment(orderData) {
   // orderData.total est déjà en FCFA : getCartTotal() fait déjà
   // `prix_euros * adminData.exchangeRate`. Ne PAS remultiplier ici, sinon
@@ -226,7 +255,17 @@ function redirectToWavePayment(orderData) {
 function addToCart(productId) {
   const product = adminData.products.find(p => String(p.id) === String(productId));
   if (!product) return;
+  const stock = Number(product.stock);
   const existing = cart.find(i => i.name === product.name);
+  const currentQtyInCart = existing ? existing.qty : 0;
+
+  // Si le produit a un stock défini (0 ou positif), on ne laisse pas le
+  // client ajouter plus que ce qui est réellement disponible.
+  if (!isNaN(stock) && currentQtyInCart + 1 > stock) {
+    showToast(stock === 0 ? `❌ ${product.name} : rupture de stock` : `⚠️ Stock limité : seulement ${stock} disponible(s)`);
+    return;
+  }
+
   const price = Number(product.price) || 0;
   if (existing) { existing.qty++; }
   else { cart.push({ id: product.id, name: product.name, price, icon: product.icon, image: product.image || null, qty: 1 }); }
@@ -270,6 +309,15 @@ function updateCart() {
 }
 
 function changeQty(idx, delta) {
+  if (delta > 0) {
+    const item = cart[idx];
+    const product = adminData.products.find(p => String(p.id) === String(item.id));
+    const stock = product ? Number(product.stock) : NaN;
+    if (!isNaN(stock) && item.qty + delta > stock) {
+      showToast(`⚠️ Stock limité : seulement ${stock} disponible(s)`);
+      return;
+    }
+  }
   cart[idx].qty += delta;
   if (cart[idx].qty <= 0) cart.splice(idx, 1);
   updateCart();
@@ -382,11 +430,13 @@ async function submitCustomerForm(event) {
       window.db.collection('orders').add(orderData).catch(err => {
         console.error('Erreur enregistrement commande (Wave):', err);
       });
+      decrementStockForOrder(orderData.items);
       return;
     }
 
     // Si paiement en espèces
     await window.db.collection('orders').add(orderData);
+    await decrementStockForOrder(orderData.items);
     showToast('✅ Commande enregistrée !');
     closeCustomerModal();
 
@@ -738,6 +788,13 @@ window.debugTechAccess = {
 
 window.addEventListener('load', () => {
   console.log('💡 Tapez: debugTechAccess.help() pour accéder aux outils de diagnostic');
+
+  // Enregistrement du service worker (PWA installable)
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(err => {
+      console.warn('Service worker non enregistré:', err);
+    });
+  }
 });
 
 loadAllDataFromFirestore();

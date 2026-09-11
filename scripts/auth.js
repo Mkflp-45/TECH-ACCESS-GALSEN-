@@ -27,7 +27,14 @@ function initAuthSession() {
       currentUser = user;
       await loadUserProfile(user.uid);
       updateAuthUI(true);
-      
+
+      // Remplir le tableau de bord (infos, fidélité) : sans ça, seul un
+      // client qui vient tout juste de s'inscrire voit ses vraies infos —
+      // à la reconnexion ou au rechargement, le panneau restait vide.
+      if (userProfile && typeof updateAccountUI === 'function') {
+        updateAccountUI(userProfile);
+      }
+
       // Charger l'historique des commandes
       if (typeof loadUserOrderHistory === 'function') {
         loadUserOrderHistory(user.uid);
@@ -113,6 +120,12 @@ function updateAccountUI(profile) {
   document.getElementById('dashEmail').textContent = profile.email || '-';
   document.getElementById('dashPhone').textContent = profile.phone || '-';
   document.getElementById('dashQuartier').textContent = profile.quartier || '-';
+
+  // Code de parrainage réel (le HTML contient un placeholder "TECH-XXXX" par défaut)
+  const referralInput = document.getElementById('referralCode');
+  if (referralInput && profile.referralCode) {
+    referralInput.value = profile.referralCode;
+  }
 
   // Fidélité
   if (typeof updateLoyaltyUI === 'function' && profile) {
@@ -393,6 +406,53 @@ async function handleLogout() {
 /**
  * Met à jour le profil utilisateur
  */
+/**
+ * Affiche/masque le formulaire d'édition du profil, pré-rempli avec les
+ * valeurs actuelles.
+ */
+function toggleEditProfile() {
+  const form = document.getElementById('editProfileForm');
+  const summary = document.getElementById('userInfoSummary');
+  const toggleBtn = document.getElementById('editProfileToggleBtn');
+  if (!form || !summary) return;
+
+  const isOpen = form.style.display !== 'none';
+  if (isOpen) {
+    form.style.display = 'none';
+    summary.style.display = 'block';
+    if (toggleBtn) toggleBtn.textContent = '✏️ Modifier';
+  } else {
+    document.getElementById('editQuartier').value = userProfile?.quartier || '';
+    document.getElementById('editPhone').value = userProfile?.phone || '';
+    form.style.display = 'block';
+    summary.style.display = 'none';
+    if (toggleBtn) toggleBtn.textContent = '✕ Fermer';
+  }
+}
+
+/**
+ * Gère la soumission du formulaire d'édition du profil.
+ */
+async function handleUpdateProfile(event) {
+  event.preventDefault();
+  const quartier = document.getElementById('editQuartier').value.trim();
+  const phone = document.getElementById('editPhone').value.trim();
+
+  if (!quartier || !phone) {
+    showToast('Veuillez remplir tous les champs');
+    return;
+  }
+
+  const phoneRegex = /^\d{8,}$/;
+  if (!phoneRegex.test(phone.replace(/[^\d]/g, ''))) {
+    showToast('Numéro de téléphone invalide');
+    return;
+  }
+
+  await updateUserProfile({ quartier, phone });
+  toggleEditProfile();
+}
+
 async function updateUserProfile(updateData) {
   if (!currentUser) {
     showToast('Vous devez être connecté');

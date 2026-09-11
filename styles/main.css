@@ -171,6 +171,22 @@ nav {
   display: flex; align-items: center; gap: 20px;
 }
 
+.account-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: transparent;
+  color: var(--mid);
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-family: "Space Mono", monospace;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.account-btn:hover { color: var(--white); border-color: var(--accent); }
+
 .cart-btn {
   display: flex; align-items: center; gap: 8px;
   background: var(--accent);
@@ -1599,6 +1615,8 @@ footer {
     color: var(--mid);
   }
   .nav-links a:hover { color: var(--white); background: rgba(255,255,255,0.05); }
+  .nav-links #authNav { padding: 10px 16px; }
+  .nav-links #authNav .account-btn { width: 100%; justify-content: center; }
   .nav-right { position: fixed; top: 74px; right: 20px; z-index: 101; }
   .logo { font-size: 1.3rem; letter-spacing: 2px; }
   .logo img { width: 44px; height: 44px; }

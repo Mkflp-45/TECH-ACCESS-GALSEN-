@@ -71,18 +71,7 @@ function updateLoyaltyUI(userData) {
   }
 }
 
-function generateReferralCode(uid) {
-  return `TECH-${uid.substring(0, 5).toUpperCase()}`;
-}
-
-function copyReferral() {
-  const codeInput = document.getElementById('referralCode');
-  if (!codeInput) return;
-  codeInput.select();
-  codeInput.setSelectionRange(0, 99999); // Pour mobile
-  navigator.clipboard.writeText(codeInput.value);
-  showToast('✅ Code de parrainage copié !');
-}
+// Note: generateReferralCode() et copyReferral() sont définies dans auth.js
 
 async function loadUserOrderHistory(uid) {
   const container = document.getElementById('orderHistoryContainer');
@@ -196,22 +185,8 @@ async function loadBestSellers() {
   }
 }
 
-// ==================== PERSISTENT CART ====================
-function saveCartToLocalStorage() {
-  localStorage.setItem('techAccessCart', JSON.stringify(cart));
-}
-
-function loadCartFromLocalStorage() {
-  const saved = localStorage.getItem('techAccessCart');
-  if (saved) {
-    try {
-      cart = JSON.parse(saved);
-      updateCart();
-    } catch (e) {
-      console.warn('Erreur chargement panier:', e);
-    }
-  }
-}
+// Note : le panier n'est plus persisté dans localStorage — il se vide
+// volontairement à chaque actualisation de page (comportement demandé).
 
 // ==================== PROMO CODES ====================
 let appliedPromo = null;
@@ -340,16 +315,12 @@ function openProductDetail(productId) {
 function initializeAllFeatures() {
   loadBestSellers();
   loadPromoCodesFromFirestore();
-  loadCartFromLocalStorage();
+  // Le panier ne doit PAS survivre à une actualisation de page : on ne
+  // restaure plus depuis localStorage, et on nettoie une éventuelle donnée
+  // laissée par une ancienne version du site chez les visiteurs déjà venus.
+  localStorage.removeItem('techAccessCart');
   initLazyLoading();
-  
-  // Save cart whenever it changes
-  const originalAddToCart = window.addToCart;
-  window.addToCart = function(productId) {
-    originalAddToCart(productId);
-    saveCartToLocalStorage();
-  };
-  
+
   // Promo code input handler
   const promoInput = document.getElementById('promoCodeInput');
   if (promoInput) {

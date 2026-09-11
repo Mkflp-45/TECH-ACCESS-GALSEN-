@@ -225,7 +225,31 @@
       <!-- CLIENTS -->
       <div class="panel" id="customers">
         <div class="section-title">CLIENTS</div>
-        <p style="opacity: 0.7; font-size: 0.85rem; margin-bottom: 20px;">Top 10 des clients par montant dépensé, calculé à partir des commandes enregistrées.</p>
+
+        <div class="section-title" style="font-size: 1rem; margin-top: 10px;">Comptes inscrits</div>
+        <p style="opacity: 0.7; font-size: 0.85rem; margin-bottom: 20px;">Clients ayant créé un compte sur le site (inscription).</p>
+        <div class="table-container" style="margin-bottom: 35px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Email</th>
+                <th>Téléphone</th>
+                <th>Quartier</th>
+                <th>Niveau</th>
+                <th>Points</th>
+                <th>Inscrit le</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="registeredCustomersTableBody">
+              <tr><td colspan="8" style="text-align:center">Chargement...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section-title" style="font-size: 1rem;">Top acheteurs</div>
+        <p style="opacity: 0.7; font-size: 0.85rem; margin-bottom: 20px;">Top 10 des clients par montant dépensé (inscrits ou non), calculé à partir des commandes enregistrées.</p>
 
         <div class="table-container">
           <table>

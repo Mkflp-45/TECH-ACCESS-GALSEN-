@@ -180,8 +180,68 @@ async function loadCustomerStatistics() {
   }
 }
 
+// ==================== COMPTES CLIENTS INSCRITS ====================
+async function loadRegisteredCustomers() {
+  const tbody = document.getElementById('registeredCustomersTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center">Chargement...</td></tr>';
+
+  try {
+    if (!window.db) return;
+    const snap = await window.db.collection('users').orderBy('createdAt', 'desc').get();
+
+    if (snap.empty) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center">Aucun compte inscrit pour le moment.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = snap.docs.map(doc => {
+      const u = doc.data();
+      const dateStr = u.createdAt && u.createdAt.toDate ? u.createdAt.toDate().toLocaleDateString('fr-FR') : '—';
+      const fullName = `${u.firstName || ''} ${u.lastName || ''}`.trim() || '—';
+      return `
+        <tr>
+          <td>${escapeHtml(fullName)}</td>
+          <td>${escapeHtml(u.email)}</td>
+          <td>${escapeHtml(u.phone)}</td>
+          <td>${escapeHtml(u.quartier)}</td>
+          <td>${escapeHtml(u.tierLevel || 'Bronze')}</td>
+          <td>${Number(u.loyaltyPoints) || 0}</td>
+          <td>${dateStr}</td>
+          <td>
+            <button class="btn-secondary" style="padding:6px 10px; font-size:0.7rem;" onclick="viewCustomerHistoryByUid('${doc.id}', this)">📋 Commandes</button>
+          </td>
+        </tr>`;
+    }).join('');
+  } catch (e) {
+    console.error('Erreur chargement comptes clients:', e);
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center">Erreur de chargement.</td></tr>';
+  }
+}
+
+// Historique de commandes d'un client INSCRIT, via son userId (plus fiable
+// qu'une recherche par numéro WhatsApp, qui peut varier d'une commande à l'autre).
+async function viewCustomerHistoryByUid(uid, buttonEl) {
+  try {
+    if (!window.db) return;
+    const snap = await window.db.collection('orders').where('userId', '==', uid).orderBy('timestamp', 'desc').get();
+    const ordersList = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    let label = uid;
+    if (buttonEl) {
+      const row = buttonEl.closest('tr');
+      if (row && row.firstElementChild) label = row.firstElementChild.textContent.trim();
+    }
+    showCustomerHistoryModal(label, ordersList);
+  } catch (e) {
+    console.error('Erreur historique compte client:', e);
+    showToast('❌ Erreur lors du chargement de l\'historique', 'error');
+  }
+}
+
 // ==================== PANEL CLIENTS (rendu) ====================
 async function loadCustomersPanel() {
+  loadRegisteredCustomers();
+
   const tbody = document.getElementById('customersTableBody');
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Chargement...</td></tr>';
