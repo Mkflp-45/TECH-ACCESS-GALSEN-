@@ -614,16 +614,7 @@ function showLoadingState(isLoading) {
 /**
  * Affiche un message toast (si fonction disponible)
  */
-function showToast(message) {
-  // Si la fonction showToast existe (depuis main.js), l'utiliser
-  if (typeof window.showToast === 'function') {
-    window.showToast(message);
-  } else {
-    // Sinon, utiliser alert comme fallback
-    console.log(message);
-    alert(message);
-  }
-}
+// Note : showToast() est définie dans main.js
 
 // ============================================
 // 9. INITIALISATION AU CHARGEMENT DE LA PAGE

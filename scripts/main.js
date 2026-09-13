@@ -791,16 +791,17 @@ function renderProducts() {
 }
 
 function updateTicker() {
-  const tickerInner = document.querySelector('.ticker-inner');
-  if (!tickerInner) return;
+  const tickerInners = document.querySelectorAll('.ticker-inner');
+  if (!tickerInners.length) return;
   const items = adminData.ticker || [];
-  tickerInner.innerHTML = items.map((item, idx) => {
+  const html = items.map((item, idx) => {
     const dot = idx === items.length - 1 ? '' : '<span class="ticker-dot">●</span>';
     return `<span class="ticker-item">${item} ${dot}</span>`;
   }).join('') + items.map((item, idx) => {
     const dot = idx === items.length - 1 ? '' : '<span class="ticker-dot">●</span>';
     return `<span class="ticker-item">${item} ${dot}</span>`;
   }).join('');
+  tickerInners.forEach(el => { el.innerHTML = html; });
 }
 
 document.querySelectorAll('.reveal').forEach(r => obs.observe(r));
