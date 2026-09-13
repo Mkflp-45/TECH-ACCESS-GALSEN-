@@ -117,13 +117,77 @@ function toggleWishlist(productId) {
   }
   localStorage.setItem('techAccessWishlist', JSON.stringify(wishlist));
   updateWishlistButtons();
+  updateWishlistCount();
+  renderWishlistPanel();
 }
 
 function updateWishlistButtons() {
   document.querySelectorAll('.wishlist-btn').forEach(btn => {
     const productId = btn.dataset.productId;
-    btn.classList.toggle('active', wishlist.includes(productId));
+    const isActive = wishlist.includes(productId);
+    btn.classList.toggle('active', isActive);
+    btn.textContent = isActive ? '♥' : '♡';
   });
+}
+
+function updateWishlistCount() {
+  const countEl = document.getElementById('wishlistCount');
+  if (countEl) countEl.textContent = wishlist.length;
+}
+
+/**
+ * Affiche/masque le panneau "Mes favoris".
+ */
+function toggleWishlistPanel() {
+  const overlay = document.getElementById('wishlistOverlay');
+  const panel = document.getElementById('wishlistPanel');
+  if (!overlay || !panel) return;
+  const isOpen = panel.classList.contains('open');
+  if (isOpen) {
+    overlay.classList.remove('open');
+    panel.classList.remove('open');
+  } else {
+    renderWishlistPanel();
+    overlay.classList.add('open');
+    panel.classList.add('open');
+  }
+}
+
+/**
+ * Remplit le panneau favoris avec les produits actuellement en wishlist.
+ */
+function renderWishlistPanel() {
+  const container = document.getElementById('wishlistItemsContainer');
+  if (!container) return;
+
+  if (wishlist.length === 0) {
+    container.innerHTML = '<p style="color:#666; font-size:0.85rem;">Aucun favori pour le moment. Cliquez sur ♡ sur un produit pour l\'ajouter ici.</p>';
+    return;
+  }
+
+  const products = (adminData.products || []).filter(p => wishlist.includes(String(p.id)));
+
+  if (products.length === 0) {
+    container.innerHTML = '<p style="color:#666; font-size:0.85rem;">Vos produits favoris ne sont plus disponibles.</p>';
+    return;
+  }
+
+  container.innerHTML = products.map(p => {
+    const priceFCFA = Math.round(Number(p.price) * (adminData.exchangeRate || 655));
+    const imgHtml = p.image
+      ? `<img src="${p.image}" alt="${p.name}" style="width:60px; height:60px; object-fit:cover; border-radius:8px;">`
+      : `<div style="width:60px; height:60px; display:flex; align-items:center; justify-content:center; font-size:1.8rem; background:rgba(255,255,255,0.05); border-radius:8px;">${p.icon || '📦'}</div>`;
+    return `
+      <div style="display:flex; gap:12px; align-items:center; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.08);">
+        ${imgHtml}
+        <div style="flex:1;">
+          <div style="font-weight:700; font-size:0.9rem;">${p.name}</div>
+          <div style="opacity:0.7; font-size:0.85rem;">${priceFCFA.toLocaleString()} FCFA</div>
+        </div>
+        <button type="button" class="add-btn" onclick="addToCart('${p.id}')" title="Ajouter au panier">+</button>
+        <button type="button" onclick="toggleWishlist('${p.id}')" style="background:none; border:none; color:#ff4444; font-size:1.2rem; cursor:pointer;" title="Retirer des favoris">✕</button>
+      </div>`;
+  }).join('');
 }
 
 // ==================== BEST SELLERS ====================
@@ -162,7 +226,7 @@ async function loadBestSellers() {
       return `
         <div class="product-card">
           <div class="product-img" style="position:relative; overflow:hidden;">
-            <img src="${p.image || p.icon}" alt="${p.name}" loading="lazy" decoding="async" width="380" height="200" style="width:100%; height:200px; object-fit:cover;">
+            ${p.image ? `<img src="${p.image}" alt="${p.name}" loading="lazy" decoding="async" width="380" height="200" style="width:100%; height:200px; object-fit:cover;">` : `<div style="width:100%; height:200px; display:flex; align-items:center; justify-content:center; font-size:3.5rem; background:rgba(255,255,255,0.05);">${p.icon || '📦'}</div>`}
             <button class="wishlist-btn" data-product-id="${p.id}" onclick="event.stopPropagation(); toggleWishlist('${p.id}')">♡</button>
             ${stock <= 5 ? `<div class="stock-indicator low">⚠️ ${stock} restants</div>` : stock > 0 ? `<div class="stock-indicator available">✓ En stock</div>` : `<div class="stock-indicator">Rupture</div>`}
           </div>
@@ -198,13 +262,19 @@ async function loadPromoCodesFromFirestore() {
       console.warn('⚠️ Firestore not yet initialized for promo codes');
       return;
     }
-    const snapshot = await window.db.collection('promotions').where('active', '==', true).get();
-    promoList = snapshot.docs.map(doc => ({
-      id: doc.id,
-      code: doc.data().code,
-      discount: Number(doc.data().discount) || 0,
-      expiresAt: doc.data().expiresAt
-    })).filter(p => !p.expiresAt || p.expiresAt.toDate() > new Date());
+    // Écoute en temps réel : si l'admin active/désactive un code pendant
+    // qu'un client a déjà le site ouvert, ça se met à jour sans qu'il ait
+    // besoin de recharger la page (comme le ticker, les produits, etc.)
+    window.db.collection('promotions').where('active', '==', true).onSnapshot(snapshot => {
+      promoList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        code: doc.data().code,
+        discount: Number(doc.data().discount) || 0,
+        expiresAt: doc.data().expiresAt
+      })).filter(p => !p.expiresAt || p.expiresAt.toDate() > new Date());
+    }, err => {
+      console.warn('Erreur écoute codes promo:', err);
+    });
   } catch (e) {
     console.warn('Erreur chargement codes promo:', e);
   }
@@ -221,13 +291,7 @@ function applyPromoCode(code) {
   updateCart();
 }
 
-function getCartTotal() {
-  let total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-  if (appliedPromo) {
-    total *= 1 - appliedPromo.discount / 100;
-  }
-  return total * (adminData.exchangeRate || 655);
-}
+// Note : getCartTotal() est définie dans main.js (gère aussi le code promo)
 
 // ==================== LAZY LOADING ====================
 function initLazyLoading() {
@@ -252,33 +316,6 @@ function initLazyLoading() {
   document.querySelectorAll('img[loading="lazy"]').forEach(img => {
     imageObserver.observe(img);
   });
-}
-
-// ==================== NEWSLETTER IMPROVEMENTS ====================
-async function subscribe() {
-  const email = document.getElementById('emailInput').value.trim();
-  if (!email || !email.includes('@')) {
-    showToast('❌ Email invalide', 'error');
-    return;
-  }
-
-  try {
-    if (!window.db) {
-      console.error('❌ Firestore not initialized');
-      showToast('⚠️ Service temporairement indisponible', 'error');
-      return;
-    }
-    await window.db.collection('newsletter').add({
-      email,
-      subscribedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      source: 'website'
-    });
-    document.getElementById('emailInput').value = '';
-    showToast('✅ Merci de votre inscription !', 'success');
-  } catch (e) {
-    console.error('Erreur inscription:', e);
-    showToast('⚠️ Erreur, réessayez plus tard', 'error');
-  }
 }
 
 // ==================== PRODUCT DETAIL MODAL ====================
@@ -320,6 +357,7 @@ function initializeAllFeatures() {
   // laissée par une ancienne version du site chez les visiteurs déjà venus.
   localStorage.removeItem('techAccessCart');
   initLazyLoading();
+  updateWishlistCount();
 
   // Promo code input handler
   const promoInput = document.getElementById('promoCodeInput');

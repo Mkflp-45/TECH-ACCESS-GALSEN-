@@ -33,13 +33,14 @@ service cloud.firestore {
 
     // Promotions: authenticated users can read, admin can write
     match /promotions/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if isAdmin();
     }
 
-    // Settings: read for authenticated, write for admin
+    // Settings: données publiques du site (ticker, catégories, taux de
+    // change) — doivent être lisibles par tout visiteur, connecté ou non.
     match /settings/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if isAdmin();
     }
 
@@ -72,6 +73,23 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      // Bonus de parrainage : un utilisateur connecté peut créditer les
+      // points d'un AUTRE compte (le parrain), mais seulement ce champ précis,
+      // et seulement pour l'incrément fixe exact du bonus (500 pts) — jamais
+      // pour modifier quoi que ce soit d'autre sur le compte de quelqu'un.
+      allow update: if isSignedIn() && !isAdmin() && request.auth.uid != userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['loyaltyPoints'])
+        && request.resource.data.loyaltyPoints == resource.data.loyaltyPoints + 500;
+    }
+
+    // Table de correspondance publique "code de parrainage -> uid", pour
+    // pouvoir résoudre un code AVANT que le nouvel inscrit soit authentifié
+    // (un code de parrainage est fait pour être partagé, donc pas sensible).
+    // Le profil complet (users/{uid}) reste protégé normalement.
+    match /referralCodes/{code} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
     }
 
     // Purchases, supportTickets and other admin collections: admin read/write

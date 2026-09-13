@@ -47,6 +47,11 @@
   <!-- CONTENT -->
   <div class="admin-sidebar-overlay" id="adminSidebarOverlay" onclick="toggleAdminMenu(false)"></div>
 
+  <div id="lowStockBanner" style="display:none; background:#c62828; color:white; padding:12px 20px; font-size:0.85rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+    <span id="lowStockBannerText"></span>
+    <button onclick="switchPanel('inventory', document.querySelector('[onclick*=inventory]'))" style="background:white; color:#c62828; border:none; padding:6px 14px; border-radius:6px; font-weight:700; cursor:pointer; font-size:0.75rem;">Voir l'inventaire</button>
+  </div>
+
   <div class="admin-content">
     <!-- SIDEBAR -->
     <div class="admin-sidebar">

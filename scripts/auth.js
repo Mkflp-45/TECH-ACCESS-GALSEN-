@@ -283,6 +283,7 @@ async function handleRegister(event) {
   const email = document.getElementById('regEmail').value.trim();
   const password = document.getElementById('regPass').value;
   const passwordConfirm = document.getElementById('regPassConfirm').value;
+  const enteredReferralCode = document.getElementById('regReferralCode').value.trim().toUpperCase();
 
   // Validation
   if (!firstName || !lastName || !phone || !quartier || !email || !password || !passwordConfirm) {
@@ -317,9 +318,29 @@ async function handleRegister(event) {
   try {
     showLoadingState(true);
 
+    // Si un code de parrainage a été saisi, chercher le compte correspondant
+    // AVANT de créer le nouveau compte, via la table publique referralCodes
+    // (le nouvel inscrit n'est pas encore authentifié à ce stade, donc on ne
+    // peut pas encore lire la collection users, protégée). Si le code est
+    // invalide, on avertit mais on continue quand même l'inscription.
+    let referrerUid = null;
+    if (enteredReferralCode) {
+      try {
+        const codeDoc = await db.collection('referralCodes').doc(enteredReferralCode).get();
+        if (codeDoc.exists) {
+          referrerUid = codeDoc.data().uid;
+        } else {
+          showToast('⚠️ Code de parrainage introuvable, inscription sans parrainage');
+        }
+      } catch (e) {
+        console.warn('Erreur recherche code parrainage:', e);
+      }
+    }
+
     // Créer le compte Firebase
     const userCredential = await auth.createUserWithEmailAndPassword(email, password);
     const user = userCredential.user;
+    const myReferralCode = generateReferralCode(user.uid);
 
     // Créer le profil Firestore
     const newProfile = {
@@ -334,12 +355,33 @@ async function handleRegister(event) {
       totalSpent: 0,
       orderCount: 0,
       tierLevel: 'Bronze',
-      referralCode: generateReferralCode(user.uid),
-      referredBy: null
+      referralCode: myReferralCode,
+      referredBy: referrerUid
     };
 
     // Sauvegarder dans Firestore
     await db.collection('users').doc(user.uid).set(newProfile);
+
+    // Publier son propre code dans la table publique, pour que de futurs
+    // inscrits puissent le retrouver avant même d'être connectés.
+    await db.collection('referralCodes').doc(myReferralCode).set({ uid: user.uid });
+
+    // Récompenser le parrain : +500 points (annoncé dans l'espace client).
+    // On utilise un incrément atomique Firestore : impossible de lire le
+    // profil du parrain (règles de confidentialité), mais un incrément ne
+    // nécessite pas de connaître sa valeur actuelle. Best-effort : si ça
+    // échoue, l'inscription reste valide quand même.
+    if (referrerUid) {
+      const REFERRAL_BONUS = 500;
+      try {
+        await db.collection('users').doc(referrerUid).update({
+          loyaltyPoints: firebase.firestore.FieldValue.increment(REFERRAL_BONUS)
+        });
+        showToast(`🎉 Parrainage validé ! Votre ami a gagné ${REFERRAL_BONUS} points`);
+      } catch (e) {
+        console.error('Erreur attribution bonus parrainage:', e);
+      }
+    }
 
     userProfile = newProfile;
     currentUser = user;

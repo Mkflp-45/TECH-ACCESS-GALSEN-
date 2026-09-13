@@ -271,6 +271,14 @@ function addToCart(productId) {
   else { cart.push({ id: product.id, name: product.name, price, icon: product.icon, image: product.image || null, qty: 1 }); }
   updateCart();
   showToast(`${product.icon || '🛒'} ${product.name} ajouté !`);
+
+  if (window.analytics) {
+    window.analytics.logEvent('add_to_cart', {
+      currency: 'XOF',
+      value: Math.round(price * (adminData.exchangeRate || 655)),
+      items: [{ item_id: String(product.id), item_name: product.name }]
+    });
+  }
 }
 
 function updateCart() {
@@ -324,7 +332,11 @@ function changeQty(idx, delta) {
 }
 
 function getCartTotal() {
-  return cart.reduce((sum, item) => sum + item.price * item.qty, 0) * adminData.exchangeRate;
+  let total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+  if (typeof appliedPromo !== 'undefined' && appliedPromo) {
+    total *= 1 - appliedPromo.discount / 100;
+  }
+  return total * adminData.exchangeRate;
 }
 
 function checkout() {
@@ -335,6 +347,11 @@ function checkout() {
 
   const total = getCartTotal();
   const method = document.querySelector('input[name="paymentMethod"]:checked').value;
+
+  if (window.analytics) {
+    window.analytics.logEvent('begin_checkout', { currency: 'XOF', value: Math.round(total) });
+  }
+
   if (method === 'wave') {
     processPayment();
   } else if (method === 'cash') {
@@ -422,6 +439,14 @@ async function submitCustomerForm(event) {
     // une simple page web qui redirige vers l'App Store/Play Store au lieu
     // d'ouvrir l'app Wave.
     if (method === 'wave') {
+      if (window.analytics) {
+        window.analytics.logEvent('purchase', {
+          currency: 'XOF',
+          value: Math.round(total),
+          transaction_id: orderToken,
+          payment_type: 'wave'
+        });
+      }
       closeCustomerModal();
       redirectToWavePayment(orderData);
       // Enregistrement de la commande en arrière-plan (best-effort) : la
@@ -439,6 +464,15 @@ async function submitCustomerForm(event) {
     await decrementStockForOrder(orderData.items);
     showToast('✅ Commande enregistrée !');
     closeCustomerModal();
+
+    if (window.analytics) {
+      window.analytics.logEvent('purchase', {
+        currency: 'XOF',
+        value: Math.round(total),
+        transaction_id: orderToken,
+        payment_type: 'cash'
+      });
+    }
 
     // Mise à jour de la fidélité si connecté
     if (firebase.auth().currentUser) {
@@ -463,16 +497,6 @@ function showToast(msg) {
   t.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
-}
-
-function subscribe() {
-  const v = document.getElementById('emailInput').value;
-  if (v.includes('@')) {
-    showToast('✅ Inscription confirmée !');
-    document.getElementById('emailInput').value = '';
-  } else {
-    showToast('⚠️ Adresse email invalide');
-  }
 }
 
 function normalizeCategorySlug(value) {
@@ -542,7 +566,7 @@ function renderCategories() {
   initializeAutoTicker(container, 0.85);
 }
 
-function initializeAutoTicker(container) {
+function initializeAutoTicker(container, speed = 1) {
   if (!container) return;
 
   container.style.scrollBehavior = 'auto';
@@ -610,6 +634,34 @@ function initializeAutoTicker(container) {
   container.addEventListener('pointerup', finishDrag);
   container.addEventListener('pointercancel', finishDrag);
   container.addEventListener('lostpointercapture', finishDrag);
+
+  // --- Défilement automatique ---
+  // Avance toute seule à intervalle régulier, en boucle. On la met en pause
+  // pendant que l'utilisateur interagit manuellement (glisser, survol), pour
+  // ne pas gêner sa lecture.
+  let autoScrollPaused = false;
+  const intervalMs = Math.max(1500, 3200 / (speed || 1));
+
+  const autoScrollTick = () => {
+    if (autoScrollPaused || dragging) return;
+    const maxScroll = container.scrollWidth - container.clientWidth;
+    if (maxScroll <= 0) return; // rien à faire défiler
+
+    const step = container.clientWidth * 0.85;
+    const atEnd = container.scrollLeft >= maxScroll - 4;
+
+    if (atEnd) {
+      container.scrollTo({ left: 0, behavior: 'smooth' });
+    } else {
+      smoothHorizontalScroll(container, step, 500);
+    }
+  };
+
+  container.addEventListener('mouseenter', () => { autoScrollPaused = true; });
+  container.addEventListener('mouseleave', () => { autoScrollPaused = false; });
+  container.addEventListener('touchstart', () => { autoScrollPaused = true; }, { passive: true });
+
+  container._autoScrollInterval = setInterval(autoScrollTick, intervalMs);
 }
 
 function moveCategories(direction) {
@@ -672,7 +724,8 @@ function renderProducts() {
         const priceFCFA = Math.round(Number(product.price) * (adminData.exchangeRate || 655));
         return `
           <div class="product-card" style="user-select: none; -webkit-user-select: none; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer;" draggable="false" ondragstart="return false;" onclick="openProductDetail('${product.id}')">
-            <div class="product-img" style="font-size: 0; pointer-events: none; -webkit-user-drag: none;">
+            <div class="product-img" style="font-size: 0; pointer-events: none; -webkit-user-drag: none; position: relative;">
+              <button type="button" class="wishlist-btn" data-product-id="${product.id}" style="pointer-events: auto;" onclick="event.stopPropagation(); toggleWishlist('${product.id}')">♡</button>
               ${product.image ? `<img src="${product.image}" loading="lazy" decoding="async" width="400" height="280" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" draggable="false" ondragstart="return false;">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
               ${product.badge ? `<div class="product-badge ${product.badge.toLowerCase().includes('nouveau') ? 'new' : ''}" style="text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">${product.badge}</div>` : ''}
             </div>
@@ -712,7 +765,8 @@ function renderProducts() {
             const priceFCFA = Math.round(Number(product.price) * (adminData.exchangeRate || 655));
             return `
               <div class="product-card" style="user-select: none; -webkit-user-select: none; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer;" draggable="false" onclick="openProductDetail('${product.id}')">
-                <div class="product-img" style="font-size: 0; pointer-events: none;">
+                <div class="product-img" style="font-size: 0; pointer-events: none; position: relative;">
+                  <button type="button" class="wishlist-btn" data-product-id="${product.id}" style="pointer-events: auto;" onclick="event.stopPropagation(); toggleWishlist('${product.id}')">♡</button>
                   ${product.image ? `<img src="${product.image}" loading="lazy" decoding="async" width="400" height="280" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" draggable="false">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
                 </div>
                 <div class="product-info" style="pointer-events: none;">
@@ -732,6 +786,8 @@ function renderProducts() {
     }
 
   document.querySelectorAll('.reveal').forEach(r => obs.observe(r));
+
+  if (typeof updateWishlistButtons === 'function') updateWishlistButtons();
 }
 
 function updateTicker() {
@@ -791,7 +847,7 @@ window.addEventListener('load', () => {
 
   // Enregistrement du service worker (PWA installable)
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(err => {
+    navigator.serviceWorker.register('sw.js').catch(err => {
       console.warn('Service worker non enregistré:', err);
     });
   }

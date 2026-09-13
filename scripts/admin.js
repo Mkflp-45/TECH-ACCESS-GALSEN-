@@ -131,6 +131,30 @@ function showAdmin() {
   if (csvContainer && !csvContainer.hasChildNodes() && typeof initCSVImport === 'function') {
     csvContainer.appendChild(initCSVImport());
   }
+
+  checkLowStockBanner();
+}
+
+/**
+ * Affiche une bannière bien visible si des produits sont en stock bas ou en
+ * rupture, dès l'ouverture de l'admin — pour ne pas dépendre du fait que
+ * l'admin pense à aller consulter le panel Inventaire.
+ */
+function checkLowStockBanner() {
+  const banner = document.getElementById('lowStockBanner');
+  const textEl = document.getElementById('lowStockBannerText');
+  if (!banner || !textEl) return;
+
+  const lowStock = (currentData.products || []).filter(p => Number(p.stock || 0) <= 5);
+  if (lowStock.length === 0) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  const names = lowStock.slice(0, 3).map(p => `${escapeHtml(p.name)} (${Number(p.stock || 0)})`).join(', ');
+  const extra = lowStock.length > 3 ? ` et ${lowStock.length - 3} autre(s)` : '';
+  textEl.innerHTML = `⚠️ Stock bas ou rupture : ${names}${extra}`;
+  banner.style.display = 'flex';
 }
 
 function filterProducts() {
@@ -717,7 +741,7 @@ async function loadOrders(filter = 'all') {
           <td style="font-size: 0.75rem;">${(order.items || []).map(i => `${Number(i.qty)||0}x ${escapeHtml(i.name)}`).join('<br>')}</td>
           <td style="font-weight:700; color:var(--accent2)">${formatFCFA(order.total)}</td>
           <td>
-            <select onchange="updateOrderStatus('${order.id}', this.value)" style="padding:4px; background:${statusColor}; color:white; border:none; border-radius:4px; font-weight:bold;">
+            <select onchange="updateOrderStatus('${order.id}', this.value, '${order.customer.whatsapp}', this)" style="padding:4px; background:${statusColor}; color:white; border:none; border-radius:4px; font-weight:bold;">
               <option value="En attente" ${order.status === 'En attente' ? 'selected' : ''}>⏳ Attente</option>
               <option value="Payé" ${order.status === 'Payé' ? 'selected' : ''}>✅ Payé</option>
               <option value="Annulé" ${order.status === 'Annulé' ? 'selected' : ''}>❌ Annulé</option>
@@ -732,8 +756,31 @@ async function loadOrders(filter = 'all') {
   } catch (e) { console.error(e); }
 }
 
-async function updateOrderStatus(id, status) {
-  try { await window.db.collection('orders').doc(id).update({ status }); showToast('✅ Statut mis à jour'); } catch (e) { showToast('❌ Erreur', 'error'); }
+async function updateOrderStatus(id, status, whatsapp, selectEl) {
+  try {
+    await window.db.collection('orders').doc(id).update({ status });
+    showToast('✅ Statut mis à jour');
+
+    // Notifier le client par WhatsApp pour les statuts qui le concernent
+    // directement. Ouvre un message pré-rempli dans WhatsApp Web/app de
+    // l'admin — un seul clic suffit ensuite pour l'envoyer réellement.
+    if ((status === 'Payé' || status === 'Annulé') && whatsapp) {
+      let name = '';
+      if (selectEl) {
+        const row = selectEl.closest('tr');
+        if (row && row.children[1]) name = row.children[1].textContent.trim();
+      }
+      const message = status === 'Payé'
+        ? `Bonjour ${name}, votre commande TECH ACCESS (#${id.substring(0, 8)}) est confirmée payée ✅. Merci pour votre confiance !`
+        : `Bonjour ${name}, votre commande TECH ACCESS (#${id.substring(0, 8)}) a été annulée. N'hésitez pas à nous contacter pour plus d'infos.`;
+      let digits = String(whatsapp).replace(/\D/g, '');
+      if (digits.startsWith('0')) digits = digits.slice(1);
+      if (digits.length === 9 || digits.length === 8) digits = '221' + digits;
+      if (digits) {
+        window.open(`https://wa.me/${digits}?text=${encodeURIComponent(message)}`, '_blank');
+      }
+    }
+  } catch (e) { showToast('❌ Erreur', 'error'); }
 }
 
 async function deleteOrder(id) {
@@ -775,6 +822,7 @@ function loadInventory() {
 
   if (totalProductsEl) totalProductsEl.textContent = currentData.products.length;
   if (lowStockEl) lowStockEl.textContent = lowStockCount;
+  checkLowStockBanner();
   if (stockValueEl) stockValueEl.textContent = formatFCFA(totalStockValue);
 
   tbody.innerHTML = currentData.products.map(product => {
@@ -835,10 +883,10 @@ async function loadSupportTickets() {
       const date = ticket.timestamp ? ticket.timestamp.toDate().toLocaleDateString('fr-FR') : '—';
       return `
         <tr>
-          <td>${ticket.name || '—'}</td>
-          <td>${ticket.whatsapp || '—'}</td>
-          <td>${ticket.subject || '—'}</td>
-          <td>${ticket.status || 'Nouveau'}</td>
+          <td>${escapeHtml(ticket.name) || '—'}</td>
+          <td>${escapeHtml(ticket.whatsapp) || '—'}</td>
+          <td>${escapeHtml(ticket.subject) || '—'}</td>
+          <td>${escapeHtml(ticket.status) || 'Nouveau'}</td>
           <td>${date}</td>
           <td>
             <div class="action-buttons">

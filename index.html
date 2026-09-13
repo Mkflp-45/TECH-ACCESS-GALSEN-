@@ -35,7 +35,7 @@
 
 <!-- PWA : permet d'installer le site comme une app sur mobile -->
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="TECH ACCESS">
@@ -80,6 +80,7 @@
 <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-analytics-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script src="scripts/auth.js" defer></script>
 <script src="scripts/main.js?v=mobilefix-1" defer></script>
@@ -109,8 +110,8 @@
   <ul class="nav-links" id="navLinks">
     <li><a href="#categories">Catégories</a></li>
     <li><a href="#produits">Produits</a></li>
-    <li><a href="#promo">Promo</a></li>
-    <li><a href="#contact">Contact</a></li>
+    <li><a href="#produits">Promo</a></li>
+    <li><a href="contact.html">Contact</a></li>
     <li id="authNav">
       <button class="account-btn" onclick="openAuthModal()" id="loginBtn">👤 Connexion</button>
       <button class="account-btn" onclick="toggleAccountDashboard()" id="userAccountBtn" style="display:none;">
@@ -119,6 +120,10 @@
     </li>
   </ul>
   <div class="nav-right">
+    <button class="cart-btn" id="wishlistBtn" onclick="toggleWishlistPanel()" aria-label="Mes favoris">
+      ♡
+      <div class="cart-count" id="wishlistCount">0</div>
+    </button>
     <button class="cart-btn" id="cartBtn" onclick="toggleCart()">
       🛒 Panier
       <div class="cart-count" id="cartCount">0</div>
@@ -187,31 +192,6 @@
   <div id="bestSellersContainer" class="products-grid reveal"></div>
 </section>
 
-<!-- PROMO BANNER -->
-
-<div class="promo-banner reveal" id="promo">
-  <div>
-    <div class="promo-label">// Offre limitée</div>
-    <div class="promo-title">Flash Sale<br>Ce Weekend</div>
-    <div class="promo-sub">Sur tous les powerbanks et chargeurs</div>
-    <br>
-    <a href="#produits" class="btn-primary" style="margin-top:20px;">Profiter de l'offre</a>
-  </div>
-  <div class="promo-discount">-20%</div>
-</div>
-
-<!-- NEWSLETTER -->
-
-<section class="newsletter" id="contact">
-  <span class="section-label">// Restez informé</span>
-  <h2 class="newsletter-title">REJOIGNEZ NOTRE<br>COMMUNAUTÉ TECH</h2>
-  <p class="newsletter-sub">Promotions exclusives, nouveautés et bons plans — directement dans votre boîte mail.</p>
-  <div class="newsletter-form">
-    <input type="email" class="newsletter-input" placeholder="votre@email.com" id="emailInput">
-    <button class="newsletter-btn" onclick="subscribe()">S'abonner →</button>
-  </div>
-</section>
-
 <!-- FOOTER -->
 
 <footer>
@@ -232,7 +212,7 @@
         <li><a href="index.html">Accueil</a></li>
         <li><a href="#produits">Produits</a></li>
         <li><a href="#categories">Catégories</a></li>
-        <li><a href="#promo">Promotions</a></li>
+        <li><a href="#produits">Promotions</a></li>
       </ul>
     </div>
     <div>
@@ -346,6 +326,7 @@
         <div class="customer-form-group"><label>Email</label><input type="email" id="regEmail" required></div>
         <div class="customer-form-group"><label>Mot de passe</label><input type="password" id="regPass" required></div>
         <div class="customer-form-group"><label>Confirmer</label><input type="password" id="regPassConfirm" required></div>
+        <div class="customer-form-group"><label>Code de parrainage (optionnel)</label><input type="text" id="regReferralCode" placeholder="TECH-XXXXX" style="text-transform:uppercase;"></div>
         <button type="submit" class="btn-pay" style="width:100%">Créer mon compte</button>
         <p style="text-align:center; margin-top:15px; font-size:0.9rem;">
           Déjà inscrit ? <a href="#" onclick="toggleAuthMode('login')">Se connecter</a>
@@ -416,6 +397,18 @@
 
   <div class="cart-footer">
     <button class="checkout-btn" style="background:#ff4444;" onclick="handleLogout()">Déconnexion</button>
+  </div>
+</div>
+
+<!-- WISHLIST PANEL -->
+<div class="cart-overlay" id="wishlistOverlay" onclick="toggleWishlistPanel()"></div>
+<div class="cart-panel" id="wishlistPanel">
+  <div class="cart-header">
+    <div class="cart-title">MES FAVORIS</div>
+    <button class="close-btn" onclick="toggleWishlistPanel()">✕</button>
+  </div>
+  <div id="wishlistItemsContainer" style="padding:20px; overflow-y:auto; height:calc(100% - 90px);">
+    <p style="color:#666; font-size:0.85rem;">Aucun favori pour le moment.</p>
   </div>
 </div>
 
