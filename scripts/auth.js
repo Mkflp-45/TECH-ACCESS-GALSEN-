@@ -99,10 +99,7 @@ function updateAuthUI(isLoggedIn) {
     if (loginBtn) loginBtn.style.display = 'none';
     if (userAccountBtn) userAccountBtn.style.display = 'flex';
     if (userNameDisplay) {
-      const displayName = userProfile.firstName && userProfile.lastName 
-        ? `${userProfile.firstName} ${userProfile.lastName}` 
-        : currentUser.email;
-      userNameDisplay.textContent = displayName;
+      userNameDisplay.textContent = userProfile.firstName || 'Mon compte';
     }
   } else {
     // Utilisateur déconnecté
@@ -116,6 +113,20 @@ function updateAuthUI(isLoggedIn) {
  * Met à jour l'affichage du tableau de bord utilisateur
  */
 function updateAccountUI(profile) {
+  // Message d'accueil personnalisé (toujours le prénom, jamais l'email)
+  const greetingEl = document.getElementById('userGreetingName');
+  if (greetingEl) {
+    greetingEl.textContent = profile.firstName || profile.email || 'Client TECH ACCESS';
+  }
+
+  // Avatar en initiales (pas de photo de profil : nécessiterait Firebase
+  // Storage, qui requiert le plan payant Blaze depuis février 2026)
+  const picDisplay = document.getElementById('profilePicDisplay');
+  if (picDisplay) {
+    const initials = ((profile.firstName || '?')[0] + (profile.lastName || '')[0]).toUpperCase();
+    picDisplay.textContent = initials;
+  }
+
   // Infos utilisateur
   document.getElementById('dashEmail').textContent = profile.email || '-';
   document.getElementById('dashPhone').textContent = profile.phone || '-';
@@ -244,7 +255,7 @@ async function handleLogin(event) {
     closeAuthModal();
 
     // Message de succès
-    showToast(`Bienvenue ${userProfile?.firstName || user.email}! 🎉`);
+    showToast(`Bienvenue ${userProfile?.firstName || 'sur TECH ACCESS'}! 🎉`);
 
   } catch (error) {
     console.error("Erreur login:", error);
@@ -260,6 +271,42 @@ async function handleLogin(event) {
       message = 'Trop de tentatives. Réessayez plus tard';
     }
     
+    showToast(message);
+  } finally {
+    showLoadingState(false);
+  }
+}
+
+/**
+ * Envoie un email de réinitialisation de mot de passe, via Firebase Auth.
+ * Réutilise l'email déjà saisi dans le formulaire de connexion s'il y en a un.
+ */
+async function handleForgotPassword(event) {
+  event.preventDefault();
+
+  const emailInput = document.getElementById('loginEmail');
+  let email = emailInput ? emailInput.value.trim() : '';
+
+  if (!email) {
+    email = prompt('Entrez votre adresse email pour réinitialiser votre mot de passe :');
+    if (!email) return;
+    email = email.trim();
+  }
+
+  try {
+    showLoadingState(true);
+    await auth.sendPasswordResetEmail(email);
+    showToast(`📧 Email envoyé à ${email}. Vérifiez votre boîte de réception (et vos spams).`);
+  } catch (error) {
+    console.error('Erreur réinitialisation mot de passe:', error);
+    let message = 'Erreur lors de l\'envoi de l\'email';
+    if (error.code === 'auth/user-not-found') {
+      message = 'Aucun compte associé à cet email';
+    } else if (error.code === 'auth/invalid-email') {
+      message = 'Email invalide';
+    } else if (error.code === 'auth/too-many-requests') {
+      message = 'Trop de tentatives. Réessayez plus tard';
+    }
     showToast(message);
   } finally {
     showLoadingState(false);

@@ -15,5 +15,13 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  event.respondWith(fetch(event.request));
+  // Ne traiter QUE les requêtes vers notre propre domaine. Les appels vers
+  // Firestore/Google (streaming temps réel, polices, etc.) doivent passer
+  // directement par le navigateur, sans repasser par le service worker —
+  // sinon certains échouent avec "Failed to fetch" (connexions en streaming
+  // non compatibles avec ce genre d'interception).
+  if (event.request.method !== 'GET' || new URL(event.request.url).origin !== self.location.origin) {
+    return;
+  }
+  event.respondWith(fetch(event.request).catch(() => new Response('', { status: 504 })));
 });

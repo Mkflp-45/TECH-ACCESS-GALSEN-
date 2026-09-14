@@ -373,6 +373,19 @@ function openCustomerModal(total) {
   const totalFormatted = Math.round(total).toLocaleString('fr-FR');
   document.getElementById('modalOrderTotal').textContent = totalFormatted + ' FCFA';
   document.getElementById('customerModalOverlay').classList.add('show');
+
+  // Pré-remplir avec les infos du profil si le client est connecté, pour lui
+  // éviter de tout retaper à chaque commande.
+  if (typeof currentUser !== 'undefined' && currentUser && typeof userProfile !== 'undefined' && userProfile) {
+    const nameInput = document.getElementById('customerName');
+    const firstNameInput = document.getElementById('customerFirstName');
+    const whatsappInput = document.getElementById('customerWhatsApp');
+    const quartierInput = document.getElementById('customerQuartier');
+    if (nameInput && !nameInput.value) nameInput.value = userProfile.lastName || '';
+    if (firstNameInput && !firstNameInput.value) firstNameInput.value = userProfile.firstName || '';
+    if (whatsappInput && !whatsappInput.value) whatsappInput.value = userProfile.phone || '';
+    if (quartierInput && !quartierInput.value) quartierInput.value = userProfile.quartier || '';
+  }
 }
 
 function closeCustomerModal() {

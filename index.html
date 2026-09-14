@@ -34,6 +34,7 @@
 <!-- PWA : permet d'installer le site comme une app sur mobile -->
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="TECH ACCESS">
@@ -323,6 +324,9 @@
         <p style="text-align:center; margin-top:15px; font-size:0.9rem;">
           Pas encore de compte ? <a href="#" onclick="toggleAuthMode('register')">S'inscrire</a>
         </p>
+        <p style="text-align:center; margin-top:8px; font-size:0.85rem;">
+          <a href="#" onclick="handleForgotPassword(event)" style="opacity:0.7;">Mot de passe oublié ?</a>
+        </p>
       </form>
     </div>
     <div id="registerFormContainer" style="display:none;">
@@ -356,6 +360,15 @@
   </div>
   
   <div class="account-scroll-area" style="padding:20px; overflow-y:auto; height:calc(100% - 150px);">
+    <!-- Profil : initiales + message d'accueil -->
+    <div style="display:flex; align-items:center; gap:14px; margin-bottom:20px;">
+      <div id="profilePicDisplay" style="width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg, #1E88E5, #1565C0); display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue'; font-size:1.5rem; flex-shrink:0; color:#fff;">?</div>
+      <div>
+        <div style="font-size:0.75rem; opacity:0.6;">Bonjour 👋</div>
+        <div id="userGreetingName" style="font-family:'Bebas Neue'; font-size:1.4rem; letter-spacing:1px;">—</div>
+      </div>
+    </div>
+
     <!-- Loyalty Card -->
     <div class="loyalty-card" style="background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%); border-radius:15px; padding:20px; color:white; margin-bottom:25px;">
       <div style="display:flex; justify-content:space-between; align-items:start;">
