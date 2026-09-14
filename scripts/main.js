@@ -673,6 +673,7 @@ function initializeAutoTicker(container, speed = 1) {
   container.addEventListener('mouseenter', () => { autoScrollPaused = true; });
   container.addEventListener('mouseleave', () => { autoScrollPaused = false; });
   container.addEventListener('touchstart', () => { autoScrollPaused = true; }, { passive: true });
+  container.addEventListener('touchend', () => { autoScrollPaused = false; }, { passive: true });
 
   container._autoScrollInterval = setInterval(autoScrollTick, intervalMs);
 }
@@ -713,6 +714,16 @@ function filterProducts() {
 function renderProducts() {
   const container = document.getElementById('productsContainer');
   if (!container) return;
+
+  // Avant de tout reconstruire, on arrête les minuteurs de défilement
+  // automatique des anciens carousels — sinon, à chaque rafraîchissement des
+  // produits (commande, mise à jour de stock, etc.), un nouveau minuteur
+  // s'ajoute sans que l'ancien ne s'arrête jamais. Ça s'accumule en
+  // arrière-plan et finit par ralentir/planter la page, surtout sur mobile.
+  container.querySelectorAll('.products-carousel').forEach(el => {
+    if (el._autoScrollInterval) clearInterval(el._autoScrollInterval);
+  });
+
   container.innerHTML = '';
 
   if (adminData.products.length === 0) {

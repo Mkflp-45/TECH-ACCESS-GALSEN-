@@ -93,11 +93,13 @@ function updateAuthUI(isLoggedIn) {
   const loginBtn = document.getElementById('loginBtn');
   const userAccountBtn = document.getElementById('userAccountBtn');
   const userNameDisplay = document.getElementById('userNameDisplay');
+  const navLogoutBtn = document.getElementById('navLogoutBtn');
 
   if (isLoggedIn && currentUser && userProfile) {
     // Utilisateur connecté
     if (loginBtn) loginBtn.style.display = 'none';
     if (userAccountBtn) userAccountBtn.style.display = 'flex';
+    if (navLogoutBtn) navLogoutBtn.style.display = 'flex';
     if (userNameDisplay) {
       userNameDisplay.textContent = userProfile.firstName || 'Mon compte';
     }
@@ -105,6 +107,7 @@ function updateAuthUI(isLoggedIn) {
     // Utilisateur déconnecté
     if (loginBtn) loginBtn.style.display = 'flex';
     if (userAccountBtn) userAccountBtn.style.display = 'none';
+    if (navLogoutBtn) navLogoutBtn.style.display = 'none';
     if (userNameDisplay) userNameDisplay.textContent = 'Compte';
   }
 }
@@ -586,17 +589,15 @@ function toggleAccountDashboard() {
     return;
   }
 
-  const isVisible = accountPanel.style.right === '0px' || accountPanel.style.right === '0';
+  const isOpen = accountPanel.classList.contains('open');
 
-  if (isVisible) {
-    // Fermer
-    accountPanel.style.right = '-400px';
-    accountOverlay.style.display = 'none';
+  if (isOpen) {
+    accountPanel.classList.remove('open');
+    accountOverlay.classList.remove('open');
     document.body.style.overflow = 'auto';
   } else {
-    // Ouvrir
-    accountPanel.style.right = '0px';
-    accountOverlay.style.display = 'block';
+    accountPanel.classList.add('open');
+    accountOverlay.classList.add('open');
     document.body.style.overflow = 'hidden';
   }
 }
