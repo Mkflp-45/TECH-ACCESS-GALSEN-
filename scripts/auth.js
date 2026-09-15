@@ -93,13 +93,11 @@ function updateAuthUI(isLoggedIn) {
   const loginBtn = document.getElementById('loginBtn');
   const userAccountBtn = document.getElementById('userAccountBtn');
   const userNameDisplay = document.getElementById('userNameDisplay');
-  const navLogoutBtn = document.getElementById('navLogoutBtn');
 
   if (isLoggedIn && currentUser && userProfile) {
     // Utilisateur connecté
     if (loginBtn) loginBtn.style.display = 'none';
     if (userAccountBtn) userAccountBtn.style.display = 'flex';
-    if (navLogoutBtn) navLogoutBtn.style.display = 'flex';
     if (userNameDisplay) {
       userNameDisplay.textContent = userProfile.firstName || 'Mon compte';
     }
@@ -107,7 +105,6 @@ function updateAuthUI(isLoggedIn) {
     // Utilisateur déconnecté
     if (loginBtn) loginBtn.style.display = 'flex';
     if (userAccountBtn) userAccountBtn.style.display = 'none';
-    if (navLogoutBtn) navLogoutBtn.style.display = 'none';
     if (userNameDisplay) userNameDisplay.textContent = 'Compte';
   }
 }
@@ -120,14 +117,6 @@ function updateAccountUI(profile) {
   const greetingEl = document.getElementById('userGreetingName');
   if (greetingEl) {
     greetingEl.textContent = profile.firstName || profile.email || 'Client TECH ACCESS';
-  }
-
-  // Avatar en initiales (pas de photo de profil : nécessiterait Firebase
-  // Storage, qui requiert le plan payant Blaze depuis février 2026)
-  const picDisplay = document.getElementById('profilePicDisplay');
-  if (picDisplay) {
-    const initials = ((profile.firstName || '?')[0] + (profile.lastName || '')[0]).toUpperCase();
-    picDisplay.textContent = initials;
   }
 
   // Infos utilisateur
@@ -483,10 +472,13 @@ async function handleLogout() {
     currentUser = null;
     userProfile = null;
 
-    // Fermer le panel
-    toggleAccountDashboard();
+    // Fermer la popup compte si elle est ouverte
+    const accountPanel = document.getElementById('accountPanel');
+    const accountOverlay = document.getElementById('accountOverlay');
+    if (accountPanel) accountPanel.classList.remove('open');
+    if (accountOverlay) accountOverlay.classList.remove('open');
+    document.body.style.overflow = 'auto';
 
-    // Message
     showToast('Vous êtes déconnecté');
 
   } catch (error) {

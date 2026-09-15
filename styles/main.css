@@ -385,10 +385,6 @@ nav {
 .badge-accent { color: var(--accent2); font-weight: 700; }
 
 /* TICKER */
-/* Le menu (nav) est en position fixe, donc il ne réserve pas d'espace dans
-   le flux normal de la page. Sans cette compensation, le premier ticker
-   (juste après le menu dans le HTML) se retrouve caché derrière lui. */
-nav + .ticker { margin-top: 76px; }
 
 .ticker {
   background: var(--accent);
@@ -411,6 +407,12 @@ nav + .ticker { margin-top: 76px; }
 
 /* SECTIONS */
 section { padding: 100px 40px; scroll-snap-align: start; }
+
+/* #categories suit directement le menu fixe (nav) dans le HTML : le padding
+   générique des sections ci-dessus suffit sur desktop/tablette, mais on
+   ajoute une marge de sécurité pour être sûr qu'elle ne soit jamais cachée
+   derrière le menu, y compris sur les très petits écrans. */
+nav + #categories { padding-top: 110px; }
 
 .promo-banner,
 footer {
@@ -1249,6 +1251,15 @@ footer {
   box-shadow: 0 20px 60px rgba(0,0,0,0.6);
 }
 
+/* Le formulaire d'inscription (prénom, nom, tél, quartier, email, mot de
+   passe x2, code parrainage) peut être plus long que la hauteur de l'écran,
+   notamment sur mobile en paysage ou petits écrans. On limite la hauteur de
+   la modale et on rend l'intérieur défilable, plutôt que de déborder. */
+.auth-modal {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
 .customer-modal-header {
   font-family: "Bebas Neue", sans-serif;
   font-size: 1.6rem;
@@ -1581,13 +1592,17 @@ footer {
 }
 
 @media (max-width: 768px) {
+  /* Cartes produit plus compactes sur mobile : moins de padding, image
+     un peu moins haute, pour faciliter le défilement horizontal. */
+  .product-card { flex: 0 0 min(220px, 72vw); border-radius: 16px; }
+  .product-img { aspect-ratio: 4 / 3; }
+  .product-info { padding: 12px 14px 14px; }
   .product-img {
     transition: none;
   }
   .cursor, .cursor-ring { display: none; }
   nav { flex-wrap: nowrap; gap: 0; justify-content: space-between; padding: 16px 20px; }
   .mobile-menu-toggle { display: block; }
-  nav + .ticker { margin-top: 68px; }
   .nav-overlay {
     position: fixed; inset: 0;
     background: rgba(2, 6, 23, 0.65);

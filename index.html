@@ -116,7 +116,6 @@
       <button class="account-btn" onclick="toggleAccountDashboard()" id="userAccountBtn" style="display:none;">
         👤 <span id="userNameDisplay">Compte</span>
       </button>
-      <button class="account-btn" onclick="handleLogout()" id="navLogoutBtn" style="display:none; border-color:#ff4444; color:#ff4444;">🚪 Déconnexion</button>
     </li>
   </ul>
   <div class="nav-right">
@@ -135,25 +134,6 @@
     <span></span>
   </button>
 </nav>
-
-<!-- TICKER -->
-
-<div class="ticker">
-  <div class="ticker-inner">
-    <span class="ticker-item">LIVRAISON GRATUITE dès 50€ <span class="ticker-dot">●</span></span>
-    <span class="ticker-item">ACCESSOIRES PREMIUM <span class="ticker-dot">●</span></span>
-    <span class="ticker-item">TECH ACCESSIBLE A TOUS <span class="ticker-dot">●</span></span>
-    <span class="ticker-item">GARANTIE 2 ANS <span class="ticker-dot">●</span></span>
-    <span class="ticker-item">DAKAR PLATEAU <span class="ticker-dot">●</span></span>
-    <span class="ticker-item">SUPPORT 7J/7 <span class="ticker-dot">●</span></span>
-    <span class="ticker-item">LIVRAISON GRATUITE dès 50€ <span class="ticker-dot">●</span></span>
-    <span class="ticker-item">ACCESSOIRES PREMIUM <span class="ticker-dot">●</span></span>
-    <span class="ticker-item">TECH ACCESSIBLE A TOUS <span class="ticker-dot">●</span></span>
-    <span class="ticker-item">GARANTIE 2 ANS <span class="ticker-dot">●</span></span>
-    <span class="ticker-item">DAKAR PLATEAU <span class="ticker-dot">●</span></span>
-    <span class="ticker-item">SUPPORT 7J/7 <span class="ticker-dot">●</span></span>
-  </div>
-</div>
 
 <!-- CATEGORIES -->
 
@@ -186,10 +166,6 @@
   <div id="productsContainer"></div>
 </section>
 
-<div class="ticker">
-  <div class="ticker-inner"></div>
-</div>
-
 <!-- BEST SELLERS SECTION -->
 
 <section id="bestsellers" style="margin-top: 80px; padding: 60px 40px; background: rgba(30, 136, 229, 0.05);">
@@ -199,10 +175,6 @@
   </div>
   <div id="bestSellersContainer" class="products-grid reveal"></div>
 </section>
-
-<div class="ticker">
-  <div class="ticker-inner"></div>
-</div>
 
 <!-- FOOTER -->
 
@@ -361,13 +333,10 @@
   </div>
   
   <div class="account-scroll-area" style="padding:20px; overflow-y:auto; height:calc(100% - 150px);">
-    <!-- Profil : initiales + message d'accueil -->
-    <div style="display:flex; align-items:center; gap:14px; margin-bottom:20px;">
-      <div id="profilePicDisplay" style="width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg, #1E88E5, #1565C0); display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue'; font-size:1.5rem; flex-shrink:0; color:#fff;">?</div>
-      <div>
-        <div style="font-size:0.75rem; opacity:0.6;">Bonjour 👋</div>
-        <div id="userGreetingName" style="font-family:'Bebas Neue'; font-size:1.4rem; letter-spacing:1px;">—</div>
-      </div>
+    <!-- Message d'accueil -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:0.85rem; opacity:0.6;">Bonjour 👋</div>
+      <div id="userGreetingName" style="font-family:'Bebas Neue'; font-size:1.8rem; letter-spacing:1px;">—</div>
     </div>
 
     <!-- Loyalty Card -->
