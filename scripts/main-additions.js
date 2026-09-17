@@ -224,7 +224,7 @@ async function loadBestSellers() {
       const priceFCFA = (Number(p.price) * exchangeRate).toFixed(0);
       return `
         <div class="product-card" style="cursor:pointer;" onclick="openProductDetail('${p.id}')">
-          <div class="product-img" style="position:relative; overflow:hidden; background: rgba(255,255,255,0.03); padding:14px;">
+          <div class="product-img" style="position:relative; overflow:hidden; background: rgba(255,255,255,0.03);">
             ${p.image ? `<img src="${p.image}" alt="${p.name}" loading="lazy" decoding="async" width="380" height="200" style="width:100%; height:200px; object-fit:contain;">` : `<div style="width:100%; height:200px; display:flex; align-items:center; justify-content:center; font-size:3.5rem;">${p.icon || '📦'}</div>`}
             <button class="wishlist-btn" data-product-id="${p.id}" onclick="event.stopPropagation(); toggleWishlist('${p.id}')">♡</button>
           </div>

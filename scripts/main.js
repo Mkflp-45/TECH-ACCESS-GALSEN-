@@ -748,7 +748,7 @@ function renderProducts() {
         const priceFCFA = Math.round(Number(product.price) * (adminData.exchangeRate || 655));
         return `
           <div class="product-card" style="user-select: none; -webkit-user-select: none; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer;" draggable="false" ondragstart="return false;" onclick="openProductDetail('${product.id}')">
-            <div class="product-img" style="font-size: 0; pointer-events: none; -webkit-user-drag: none; position: relative; background: rgba(255,255,255,0.03); padding: 14px;">
+            <div class="product-img" style="font-size: 0; pointer-events: none; -webkit-user-drag: none; position: relative; background: rgba(255,255,255,0.03);">
               <button type="button" class="wishlist-btn" data-product-id="${product.id}" style="pointer-events: auto;" onclick="event.stopPropagation(); toggleWishlist('${product.id}')">♡</button>
               ${product.image ? `<img src="${product.image}" loading="lazy" decoding="async" width="400" height="280" style="width: 100%; height: 100%; object-fit: contain; transition: transform 0.5s ease;" draggable="false" ondragstart="return false;">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
               ${product.badge ? `<div class="product-badge ${product.badge.toLowerCase().includes('nouveau') ? 'new' : ''}" style="text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">${product.badge}</div>` : ''}
@@ -787,7 +787,7 @@ function renderProducts() {
             const priceFCFA = Math.round(Number(product.price) * (adminData.exchangeRate || 655));
             return `
               <div class="product-card" style="user-select: none; -webkit-user-select: none; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer;" draggable="false" onclick="openProductDetail('${product.id}')">
-                <div class="product-img" style="font-size: 0; pointer-events: none; position: relative; background: rgba(255,255,255,0.03); padding: 14px;">
+                <div class="product-img" style="font-size: 0; pointer-events: none; position: relative; background: rgba(255,255,255,0.03);">
                   <button type="button" class="wishlist-btn" data-product-id="${product.id}" style="pointer-events: auto;" onclick="event.stopPropagation(); toggleWishlist('${product.id}')">♡</button>
                   ${product.image ? `<img src="${product.image}" loading="lazy" decoding="async" width="400" height="280" style="width: 100%; height: 100%; object-fit: contain; transition: transform 0.5s ease;" draggable="false">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
                 </div>
@@ -810,18 +810,51 @@ function renderProducts() {
   if (typeof updateWishlistButtons === 'function') updateWishlistButtons();
 }
 
+// Initialisé avec le même contenu que le secours statique dans le HTML :
+// si les vraies données Firestore sont identiques (cas le plus fréquent,
+// tant que l'admin n'a pas personnalisé le ticker), on ne touche jamais au
+// DOM et l'animation démarrée au chargement de la page continue sans la
+// moindre interruption.
+let lastTickerContentKey = JSON.stringify([
+  'LIVRAISON GRATUITE dès 50€', 'ACCESSOIRES PREMIUM', 'TECH ACCESSIBLE A TOUS',
+  'GARANTIE 2 ANS', 'DAKAR PLATEAU', 'SUPPORT 7J/7'
+]);
+
 function updateTicker() {
   const tickerInners = document.querySelectorAll('.ticker-inner');
   if (!tickerInners.length) return;
   const items = adminData.ticker || [];
-  const html = items.map((item, idx) => {
-    const dot = idx === items.length - 1 ? '' : '<span class="ticker-dot">●</span>';
-    return `<span class="ticker-item">${item} ${dot}</span>`;
-  }).join('') + items.map((item, idx) => {
-    const dot = idx === items.length - 1 ? '' : '<span class="ticker-dot">●</span>';
-    return `<span class="ticker-item">${item} ${dot}</span>`;
+
+  // Ne toucher au DOM QUE si le contenu a réellement changé. Firestore
+  // déclenche parfois plusieurs mises à jour d'affilée avec les mêmes
+  // données (une fois depuis le cache local, une fois depuis le serveur) :
+  // réécrire le HTML à chaque fois casse l'animation en cours, ce qui donne
+  // l'impression que le ticker "saute" ou se met en pause.
+  const contentKey = JSON.stringify(items);
+  if (contentKey === lastTickerContentKey) return;
+  lastTickerContentKey = contentKey;
+
+  const single = items.map(item => {
+    return `<span class="ticker-item">${item} <span class="ticker-dot">●</span></span>`;
   }).join('');
-  tickerInners.forEach(el => { el.innerHTML = html; });
+  const html = single + single;
+
+  // Vitesse de défilement fixe (en pixels/seconde), plutôt qu'une durée
+  // d'animation figée : avec un nombre d'éléments variable, une durée fixe
+  // fait paraître le défilement tantôt trop rapide, tantôt trop lent, avec
+  // une impression de pause au moment de la boucle. En calculant la durée à
+  // partir de la largeur réelle du contenu, la vitesse reste toujours
+  // constante et fluide, quel que soit le nombre de messages configurés.
+  const PIXELS_PER_SECOND = 60;
+
+  tickerInners.forEach(el => {
+    el.innerHTML = html;
+    // scrollWidth couvre les deux copies ; on ne veut la durée que pour une
+    // seule copie (la boucle se fait à -50%, donc sur une largeur = moitié).
+    const singleWidth = el.scrollWidth / 2;
+    const duration = Math.max(8, singleWidth / PIXELS_PER_SECOND);
+    el.style.animationDuration = duration + 's';
+  });
 }
 
 document.querySelectorAll('.reveal').forEach(r => obs.observe(r));
