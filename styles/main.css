@@ -816,7 +816,13 @@ footer {
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  *, *::before, *::after { animation: none !important; transition: none !important; }
+  /* Le ticker (bandeau d'infos promo/livraison) reste exclu de cette règle :
+     contrairement aux animations décoratives, c'est ici le seul moyen
+     d'afficher son contenu — sans le défilement, le texte resterait
+     tronqué et illisible pour les personnes ayant activé "Réduire les
+     animations" sur leur téléphone. */
+  *:not(.ticker-inner), *::before, *::after { animation: none !important; }
+  *, *::before, *::after { transition: none !important; }
 }
 
 /* PROMO BANNER */

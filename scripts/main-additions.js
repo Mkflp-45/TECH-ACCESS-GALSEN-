@@ -222,21 +222,17 @@ async function loadBestSellers() {
     container.innerHTML = bestsellers.map(p => {
       const exchangeRate = adminData.exchangeRate || 655;
       const priceFCFA = (Number(p.price) * exchangeRate).toFixed(0);
-      const stock = Number(p.stock || 0);
       return `
-        <div class="product-card">
-          <div class="product-img" style="position:relative; overflow:hidden;">
-            ${p.image ? `<img src="${p.image}" alt="${p.name}" loading="lazy" decoding="async" width="380" height="200" style="width:100%; height:200px; object-fit:cover;">` : `<div style="width:100%; height:200px; display:flex; align-items:center; justify-content:center; font-size:3.5rem; background:rgba(255,255,255,0.05);">${p.icon || '📦'}</div>`}
+        <div class="product-card" style="cursor:pointer;" onclick="openProductDetail('${p.id}')">
+          <div class="product-img" style="position:relative; overflow:hidden; background: rgba(255,255,255,0.03); padding:14px;">
+            ${p.image ? `<img src="${p.image}" alt="${p.name}" loading="lazy" decoding="async" width="380" height="200" style="width:100%; height:200px; object-fit:contain;">` : `<div style="width:100%; height:200px; display:flex; align-items:center; justify-content:center; font-size:3.5rem;">${p.icon || '📦'}</div>`}
             <button class="wishlist-btn" data-product-id="${p.id}" onclick="event.stopPropagation(); toggleWishlist('${p.id}')">♡</button>
-            ${stock <= 5 ? `<div class="stock-indicator low">⚠️ ${stock} restants</div>` : stock > 0 ? `<div class="stock-indicator available">✓ En stock</div>` : `<div class="stock-indicator">Rupture</div>`}
           </div>
           <div class="product-info">
-            <div class="product-category">${p.category}</div>
-            <div class="product-name">${p.name}</div>
-            <div class="product-desc">${p.desc.substring(0, 50)}...</div>
-            <div style="display:flex; gap:8px; align-items:center; margin-top:12px;">
+            <div class="product-name" style="margin-bottom:8px;">${p.name}</div>
+            <div style="display:flex; gap:8px; align-items:center; justify-content:space-between;">
               <div class="product-price">${priceFCFA.toLocaleString()} FCFA</div>
-              <button type="button" class="add-btn" onclick="addToCart('${p.id}')">+</button>
+              <button type="button" class="add-btn" onclick="event.stopPropagation(); addToCart('${p.id}')">+</button>
             </div>
           </div>
         </div>

@@ -748,15 +748,13 @@ function renderProducts() {
         const priceFCFA = Math.round(Number(product.price) * (adminData.exchangeRate || 655));
         return `
           <div class="product-card" style="user-select: none; -webkit-user-select: none; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer;" draggable="false" ondragstart="return false;" onclick="openProductDetail('${product.id}')">
-            <div class="product-img" style="font-size: 0; pointer-events: none; -webkit-user-drag: none; position: relative;">
+            <div class="product-img" style="font-size: 0; pointer-events: none; -webkit-user-drag: none; position: relative; background: rgba(255,255,255,0.03); padding: 14px;">
               <button type="button" class="wishlist-btn" data-product-id="${product.id}" style="pointer-events: auto;" onclick="event.stopPropagation(); toggleWishlist('${product.id}')">♡</button>
-              ${product.image ? `<img src="${product.image}" loading="lazy" decoding="async" width="400" height="280" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" draggable="false" ondragstart="return false;">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
+              ${product.image ? `<img src="${product.image}" loading="lazy" decoding="async" width="400" height="280" style="width: 100%; height: 100%; object-fit: contain; transition: transform 0.5s ease;" draggable="false" ondragstart="return false;">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
               ${product.badge ? `<div class="product-badge ${product.badge.toLowerCase().includes('nouveau') ? 'new' : ''}" style="text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">${product.badge}</div>` : ''}
             </div>
             <div class="product-info" style="pointer-events: none;">
-              <div class="stars" style="color: #ffb400; letter-spacing: 2px; margin-bottom: 6px;">★★★★★</div>
-              <div class="product-name" style="font-weight: 700; font-size: 1.05rem; margin-bottom: 4px;">${product.name}</div>
-              <div class="product-desc" style="opacity: 0.7; font-size: 0.85rem; line-height: 1.3;">${product.desc || ''}</div>
+              <div class="product-name" style="font-weight: 700; font-size: 1.05rem; margin-bottom: 8px;">${product.name}</div>
               <div class="product-bottom" style="pointer-events: auto;">
                 <div class="product-price">${priceFCFA.toLocaleString()} FCFA</div>
                 <button type="button" class="add-btn" onclick="event.stopPropagation(); addToCart('${product.id}')">+</button>
@@ -789,14 +787,12 @@ function renderProducts() {
             const priceFCFA = Math.round(Number(product.price) * (adminData.exchangeRate || 655));
             return `
               <div class="product-card" style="user-select: none; -webkit-user-select: none; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer;" draggable="false" onclick="openProductDetail('${product.id}')">
-                <div class="product-img" style="font-size: 0; pointer-events: none; position: relative;">
+                <div class="product-img" style="font-size: 0; pointer-events: none; position: relative; background: rgba(255,255,255,0.03); padding: 14px;">
                   <button type="button" class="wishlist-btn" data-product-id="${product.id}" style="pointer-events: auto;" onclick="event.stopPropagation(); toggleWishlist('${product.id}')">♡</button>
-                  ${product.image ? `<img src="${product.image}" loading="lazy" decoding="async" width="400" height="280" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" draggable="false">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
+                  ${product.image ? `<img src="${product.image}" loading="lazy" decoding="async" width="400" height="280" style="width: 100%; height: 100%; object-fit: contain; transition: transform 0.5s ease;" draggable="false">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
                 </div>
                 <div class="product-info" style="pointer-events: none;">
-                  <div class="stars" style="color: #ffb400; letter-spacing: 2px; margin-bottom: 4px;">★★★★★</div>
-                  <div class="product-name" style="font-weight: 700; font-size: 1.05rem; margin-bottom: 4px;">${product.name}</div>
-                  <div class="product-desc" style="opacity: 0.7; font-size: 0.85rem; line-height: 1.3;">${product.desc || ''}</div>
+                  <div class="product-name" style="font-weight: 700; font-size: 1.05rem; margin-bottom: 8px;">${product.name}</div>
                   <div class="product-bottom" style="pointer-events: auto;">
                     <div class="product-price">${priceFCFA.toLocaleString()} FCFA</div>
                     <button type="button" class="add-btn" onclick="event.stopPropagation(); addToCart('${product.id}')">+</button>
