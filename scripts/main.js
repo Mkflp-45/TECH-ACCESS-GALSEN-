@@ -750,7 +750,7 @@ function renderProducts() {
           <div class="product-card" style="user-select: none; -webkit-user-select: none; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer;" draggable="false" ondragstart="return false;" onclick="openProductDetail('${product.id}')">
             <div class="product-img" style="font-size: 0; pointer-events: none; -webkit-user-drag: none; position: relative; background: rgba(255,255,255,0.03);">
               <button type="button" class="wishlist-btn" data-product-id="${product.id}" style="pointer-events: auto;" onclick="event.stopPropagation(); toggleWishlist('${product.id}')">♡</button>
-              ${product.image ? `<img src="${product.image}" loading="lazy" decoding="async" width="400" height="280" style="width: 100%; height: 100%; object-fit: contain; transition: transform 0.5s ease;" draggable="false" ondragstart="return false;">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
+              ${product.image ? `<img src="${product.image}" loading="lazy" decoding="async" width="400" height="280" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" draggable="false" ondragstart="return false;">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
               ${product.badge ? `<div class="product-badge ${product.badge.toLowerCase().includes('nouveau') ? 'new' : ''}" style="text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">${product.badge}</div>` : ''}
             </div>
             <div class="product-info" style="pointer-events: none;">
@@ -789,7 +789,7 @@ function renderProducts() {
               <div class="product-card" style="user-select: none; -webkit-user-select: none; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer;" draggable="false" onclick="openProductDetail('${product.id}')">
                 <div class="product-img" style="font-size: 0; pointer-events: none; position: relative; background: rgba(255,255,255,0.03);">
                   <button type="button" class="wishlist-btn" data-product-id="${product.id}" style="pointer-events: auto;" onclick="event.stopPropagation(); toggleWishlist('${product.id}')">♡</button>
-                  ${product.image ? `<img src="${product.image}" loading="lazy" decoding="async" width="400" height="280" style="width: 100%; height: 100%; object-fit: contain; transition: transform 0.5s ease;" draggable="false">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
+                  ${product.image ? `<img src="${product.image}" loading="lazy" decoding="async" width="400" height="280" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" draggable="false">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
                 </div>
                 <div class="product-info" style="pointer-events: none;">
                   <div class="product-name" style="font-weight: 700; font-size: 1.05rem; margin-bottom: 8px;">${product.name}</div>
