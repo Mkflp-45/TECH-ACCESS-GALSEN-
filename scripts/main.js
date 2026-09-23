@@ -161,6 +161,40 @@ function initializePage() {
   updateTicker();
 }
 
+// ==================== MENU (hamburger) ====================
+let menuOpen = false;
+
+function toggleMenu(force) {
+  menuOpen = typeof force === 'boolean' ? force : !menuOpen;
+  const drawer = document.getElementById('menuDrawer');
+  const overlay = document.getElementById('menuOverlay');
+  const btn = document.getElementById('menuBtn');
+  if (!drawer || !overlay || !btn) return;
+  drawer.classList.toggle('open', menuOpen);
+  overlay.classList.toggle('open', menuOpen);
+  btn.classList.toggle('active', menuOpen);
+  btn.setAttribute('aria-expanded', String(menuOpen));
+  drawer.setAttribute('aria-hidden', String(!menuOpen));
+  document.body.classList.toggle('menu-open', menuOpen);
+}
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && menuOpen) toggleMenu(false);
+});
+
+// Liste des catégories dans le menu : un tap fait défiler jusqu'aux produits.
+function renderMenuCategories() {
+  const box = document.getElementById('menuCategories');
+  if (!box) return;
+  const cats = normalizeCategoryList(adminData.categories);
+  box.innerHTML = cats.map(cat => {
+    const catId = cat.id || cat.name || 'unknown';
+    const name = cat.name || cat.title || cat.label || String(catId);
+    const slug = cat.slug || normalizeCategorySlug(catId);
+    return `<button type="button" class="menu-chip" onclick="toggleMenu(false); scrollToCategory('${slug}')">${name}</button>`;
+  }).join('');
+}
+
 let cart = [];
 let cartOpen = false;
 
@@ -252,6 +286,11 @@ function updateStickyBar(count, totalFCFA) {
   document.getElementById('stickyTotal').textContent = Number(totalFCFA).toLocaleString('fr-FR') + ' FCFA';
   bar.hidden = count === 0;
   document.body.classList.toggle('has-cart-bar', count > 0);
+  // pastille sur le bouton menu + compteur dans le menu
+  const badge = document.getElementById('cartCount');
+  if (badge) badge.classList.toggle('is-zero', count === 0);
+  const menuCount = document.getElementById('menuCartCount');
+  if (menuCount) menuCount.textContent = count > 0 ? `(${count})` : '';
 }
 
 function updateCart() {
@@ -552,6 +591,7 @@ function renderCategories() {
   container.innerHTML = catHtml || '<div class="category-empty">Aucune catégorie disponible.</div>';
   container.scrollLeft = 0;
   initializeAutoTicker(container, 0.85);
+  renderMenuCategories();
 }
 
 function initializeAutoTicker(container, speed = 1) {
