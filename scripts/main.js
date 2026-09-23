@@ -161,42 +161,6 @@ function initializePage() {
   updateTicker();
 }
 
-const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-const navLinks = document.getElementById('navLinks');
-const navOverlay = document.getElementById('navOverlay');
-
-function setMenuOpen(isOpen) {
-  if (!mobileMenuToggle || !navLinks) return;
-  mobileMenuToggle.classList.toggle('active', isOpen);
-  navLinks.classList.toggle('active', isOpen);
-  navOverlay?.classList.toggle('show', isOpen);
-  document.body.classList.toggle('menu-open', isOpen);
-  mobileMenuToggle.setAttribute('aria-expanded', String(isOpen));
-}
-
-mobileMenuToggle?.addEventListener('click', () => {
-  setMenuOpen(!mobileMenuToggle.classList.contains('active'));
-});
-
-navOverlay?.addEventListener('click', () => setMenuOpen(false));
-navLinks?.querySelectorAll('a').forEach(link => {
-  link.addEventListener('click', () => setMenuOpen(false));
-});
-
-document.addEventListener('keydown', event => {
-  if (event.key === 'Escape') setMenuOpen(false);
-});
-
-const cursor = document.getElementById('cursor');
-const ring = document.getElementById('cursorRing');
-
-if (!isMobile()) {
-  document.addEventListener('mousemove', e => {
-    cursor.style.transform = `translate(${e.clientX - 7}px, ${e.clientY - 7}px)`;
-    setTimeout(() => { ring.style.transform = `translate(${e.clientX - 20}px, ${e.clientY - 20}px)`; }, 60);
-  });
-}
-
 let cart = [];
 let cartOpen = false;
 
@@ -281,6 +245,15 @@ function addToCart(productId) {
   }
 }
 
+function updateStickyBar(count, totalFCFA) {
+  const bar = document.getElementById('stickyCartBar');
+  if (!bar) return;
+  document.getElementById('stickyCount').textContent = count;
+  document.getElementById('stickyTotal').textContent = Number(totalFCFA).toLocaleString('fr-FR') + ' FCFA';
+  bar.hidden = count === 0;
+  document.body.classList.toggle('has-cart-bar', count > 0);
+}
+
 function updateCart() {
   const count = cart.reduce((a, i) => a + i.qty, 0);
   document.getElementById('cartCount').textContent = count;
@@ -288,6 +261,7 @@ function updateCart() {
   const total = getCartTotal();
   const totalFCFA = Number(total).toFixed(0);
   document.getElementById('cartTotal').textContent = totalFCFA + ' FCFA';
+  updateStickyBar(count, totalFCFA);
 
   const itemsEl = document.getElementById('cartItems');
   const footerEl = document.getElementById('cartFooter');
@@ -374,18 +348,21 @@ function openCustomerModal(total) {
   document.getElementById('modalOrderTotal').textContent = totalFormatted + ' FCFA';
   document.getElementById('customerModalOverlay').classList.add('show');
 
-  // Pré-remplir avec les infos du profil si le client est connecté, pour lui
-  // éviter de tout retaper à chaque commande.
-  if (typeof currentUser !== 'undefined' && currentUser && typeof userProfile !== 'undefined' && userProfile) {
-    const nameInput = document.getElementById('customerName');
-    const firstNameInput = document.getElementById('customerFirstName');
-    const whatsappInput = document.getElementById('customerWhatsApp');
-    const quartierInput = document.getElementById('customerQuartier');
-    if (nameInput && !nameInput.value) nameInput.value = userProfile.lastName || '';
-    if (firstNameInput && !firstNameInput.value) firstNameInput.value = userProfile.firstName || '';
-    if (whatsappInput && !whatsappInput.value) whatsappInput.value = userProfile.phone || '';
-    if (quartierInput && !quartierInput.value) quartierInput.value = userProfile.quartier || '';
-  }
+  // Pré-remplir avec les infos de la dernière commande faite sur cet appareil,
+  // pour que le client n'ait pas à tout retaper (remplace l'ancien compte client).
+  try {
+    const saved = JSON.parse(localStorage.getItem('techAccessCustomer') || 'null');
+    if (saved) {
+      const fill = (id, value) => {
+        const el = document.getElementById(id);
+        if (el && !el.value) el.value = value || '';
+      };
+      fill('customerName', saved.name);
+      fill('customerFirstName', saved.firstName);
+      fill('customerWhatsApp', saved.whatsapp);
+      fill('customerQuartier', saved.quartier);
+    }
+  } catch (e) { /* localStorage indisponible : on ignore */ }
 }
 
 function closeCustomerModal() {
@@ -415,6 +392,10 @@ async function submitCustomerForm(event) {
     return;
   }
 
+  try {
+    localStorage.setItem('techAccessCustomer', JSON.stringify({ name, firstName, whatsapp, quartier }));
+  } catch (e) { /* ignoré */ }
+
   const btn = event.submitter;
   if (btn) btn.disabled = true;
 
@@ -439,7 +420,6 @@ async function submitCustomerForm(event) {
     paymentMethod: method === 'cash' ? 'Espèces' : 'Wave',
     status: method === 'wave' ? 'En attente - paiement en cours' : 'En attente - paiement en espèces',
     orderToken,
-    userId: firebase.auth().currentUser ? firebase.auth().currentUser.uid : null,
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   };
 
@@ -485,11 +465,6 @@ async function submitCustomerForm(event) {
         transaction_id: orderToken,
         payment_type: 'cash'
       });
-    }
-
-    // Mise à jour de la fidélité si connecté
-    if (firebase.auth().currentUser) {
-      updateUserLoyalty(total);
     }
 
     // Nettoyage du panier
@@ -581,6 +556,7 @@ function renderCategories() {
 
 function initializeAutoTicker(container, speed = 1) {
   if (!container) return;
+  if (isMobile()) return; // mobile : grille fixe, pas de défilement automatique
 
   container.style.scrollBehavior = 'auto';
   if (!isMobile()) container.style.cursor = 'grab';
@@ -749,7 +725,6 @@ function renderProducts() {
         return `
           <div class="product-card" style="user-select: none; -webkit-user-select: none; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer;" draggable="false" ondragstart="return false;" onclick="openProductDetail('${product.id}')">
             <div class="product-img" style="font-size: 0; pointer-events: none; -webkit-user-drag: none; position: relative; background: rgba(255,255,255,0.03);">
-              <button type="button" class="wishlist-btn" data-product-id="${product.id}" style="pointer-events: auto;" onclick="event.stopPropagation(); toggleWishlist('${product.id}')">♡</button>
               ${product.image ? `<img src="${product.image}" loading="lazy" decoding="async" width="400" height="280" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" draggable="false" ondragstart="return false;">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
               ${product.badge ? `<div class="product-badge ${product.badge.toLowerCase().includes('nouveau') ? 'new' : ''}" style="text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">${product.badge}</div>` : ''}
             </div>
@@ -788,7 +763,6 @@ function renderProducts() {
             return `
               <div class="product-card" style="user-select: none; -webkit-user-select: none; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer;" draggable="false" onclick="openProductDetail('${product.id}')">
                 <div class="product-img" style="font-size: 0; pointer-events: none; position: relative; background: rgba(255,255,255,0.03);">
-                  <button type="button" class="wishlist-btn" data-product-id="${product.id}" style="pointer-events: auto;" onclick="event.stopPropagation(); toggleWishlist('${product.id}')">♡</button>
                   ${product.image ? `<img src="${product.image}" loading="lazy" decoding="async" width="400" height="280" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" draggable="false">` : `<span style="font-size: 4rem;">${product.icon || '📦'}</span>`}
                 </div>
                 <div class="product-info" style="pointer-events: none;">
@@ -807,7 +781,6 @@ function renderProducts() {
 
   document.querySelectorAll('.reveal').forEach(r => obs.observe(r));
 
-  if (typeof updateWishlistButtons === 'function') updateWishlistButtons();
 }
 
 // Initialisé avec le même contenu que le secours statique dans le HTML :

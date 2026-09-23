@@ -18,7 +18,8 @@ if (!firebase.apps.length) {
 
 // Expose to global window scope for access across scripts
 window.db = firebase.firestore();
-window.auth = firebase.auth();
+// Le SDK Auth n'est chargé que sur admin.html ; le site client n'en a plus besoin.
+window.auth = (typeof firebase.auth === 'function') ? firebase.auth() : null;
 
 // Analytics : uniquement chargé sur index.html (site client), pas sur
 // admin.html, pour ne pas polluer les statistiques de visite avec l'usage

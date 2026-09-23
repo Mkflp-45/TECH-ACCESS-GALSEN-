@@ -1,249 +1,4 @@
-// ==================== WISHLIST / FAVORIS ====================
-let wishlist = JSON.parse(localStorage.getItem('techAccessWishlist')) || [];
-
-// ==================== LOYALTY ENGINE ====================
-const TIER_CONFIG = {
-  BRONZE: { min: 0, label: 'Bronze', color: '#cd7f32', bonus: 1 },
-  SILVER: { min: 500, label: 'Argent', color: '#c0c0c0', bonus: 1.1 },
-  GOLD: { min: 2000, label: 'Or', color: '#ffd700', bonus: 1.25 },
-  PREMIUM: { min: 5000, label: 'Premium', color: '#e5e4e2', bonus: 1.5 }
-};
-
-function getTier(points) {
-  if (points >= TIER_CONFIG.PREMIUM.min) return TIER_CONFIG.PREMIUM;
-  if (points >= TIER_CONFIG.GOLD.min) return TIER_CONFIG.GOLD;
-  if (points >= TIER_CONFIG.SILVER.min) return TIER_CONFIG.SILVER;
-  return TIER_CONFIG.BRONZE;
-}
-
-async function updateUserLoyalty(orderTotal) {
-  const user = firebase.auth().currentUser;
-  if (!user) return;
-
-  // 1 point pour chaque 1000 FCFA dépensé
-  const pointsEarned = Math.floor(orderTotal / 1000);
-  
-  const userRef = db.collection('users').doc(user.uid);
-  await db.runTransaction(async (transaction) => {
-    const sfDoc = await transaction.get(userRef);
-    const newPoints = (sfDoc.data().loyaltyPoints || 0) + pointsEarned;
-    const totalSpent = (sfDoc.data().totalSpent || 0) + orderTotal;
-    const orderCount = (sfDoc.data().orderCount || 0) + 1;
-    
-    transaction.update(userRef, { 
-      loyaltyPoints: newPoints,
-      totalSpent: totalSpent,
-      orderCount: orderCount,
-      lastPurchase: firebase.firestore.FieldValue.serverTimestamp()
-    });
-  });
-  
-  showToast(`✨ +${pointsEarned} points de fidélité !`);
-}
-
-function updateLoyaltyUI(userData) {
-  const pts = userData.loyaltyPoints || 0;
-  const tier = getTier(pts);
-  
-  const ptsEl = document.getElementById('userPoints');
-  const tierEl = document.getElementById('userTier');
-  const progressEl = document.getElementById('tierProgress');
-  const nextInfoEl = document.getElementById('nextTierInfo');
-
-  if (ptsEl) ptsEl.textContent = pts.toLocaleString();
-  if (tierEl) {
-    tierEl.textContent = tier.label;
-    tierEl.style.background = tier.color;
-  }
-
-  // Calcul progrès prochain palier
-  let nextTier = TIER_CONFIG.SILVER;
-  if (pts >= TIER_CONFIG.SILVER.min) nextTier = TIER_CONFIG.GOLD;
-  if (pts >= TIER_CONFIG.GOLD.min) nextTier = TIER_CONFIG.PREMIUM;
-  
-  if (pts < TIER_CONFIG.PREMIUM.min) {
-    const progress = (pts / nextTier.min) * 100;
-    if (progressEl) progressEl.style.width = `${Math.min(progress, 100)}%`;
-    if (nextInfoEl) nextInfoEl.textContent = `Plus que ${nextTier.min - pts} pts pour le niveau ${nextTier.label}`;
-  } else {
-    if (progressEl) progressEl.style.width = '100%';
-    if (nextInfoEl) nextInfoEl.textContent = 'Niveau maximum atteint ! 🎉';
-  }
-}
-
-// Note: generateReferralCode() et copyReferral() sont définies dans auth.js
-
-async function loadUserOrderHistory(uid) {
-  const container = document.getElementById('orderHistoryContainer');
-  if (!container) return;
-
-  try {
-    const snapshot = await db.collection('orders')
-      .where('userId', '==', uid)
-      .orderBy('timestamp', 'desc')
-      .limit(5)
-      .get();
-
-    if (snapshot.empty) {
-      container.innerHTML = '<p style="color:#666; font-size:0.85rem;">Aucune commande pour le moment.</p>';
-      return;
-    }
-
-    container.innerHTML = snapshot.docs.map(doc => {
-      const order = doc.data();
-      const date = order.timestamp ? order.timestamp.toDate().toLocaleDateString('fr-FR') : 'Date inconnue';
-      return `
-        <div style="background:rgba(255,255,255,0.05); padding:12px; border-radius:10px; margin-bottom:10px; border-left: 3px solid #1E88E5;">
-          <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:5px;">
-            <span style="opacity:0.6;">${date}</span>
-            <span style="color:var(--accent); font-weight:600;">${order.status}</span>
-          </div>
-          <div style="font-weight:600; font-size:0.9rem;">${Number(order.total).toLocaleString()} FCFA</div>
-        </div>`;
-    }).join('');
-  } catch (e) {
-    console.warn('Erreur chargement historique:', e);
-  }
-}
-
-function toggleWishlist(productId) {
-  const index = wishlist.indexOf(productId);
-  if (index > -1) {
-    wishlist.splice(index, 1);
-    showToast('Retiré des favoris 💔', 'info');
-  } else {
-    wishlist.push(productId);
-    showToast('Ajouté aux favoris ❤️', 'success');
-  }
-  localStorage.setItem('techAccessWishlist', JSON.stringify(wishlist));
-  updateWishlistButtons();
-  updateWishlistCount();
-  renderWishlistPanel();
-}
-
-function updateWishlistButtons() {
-  document.querySelectorAll('.wishlist-btn').forEach(btn => {
-    const productId = btn.dataset.productId;
-    const isActive = wishlist.includes(productId);
-    btn.classList.toggle('active', isActive);
-    btn.textContent = isActive ? '♥' : '♡';
-  });
-}
-
-function updateWishlistCount() {
-  const countEl = document.getElementById('wishlistCount');
-  if (countEl) countEl.textContent = wishlist.length;
-}
-
-/**
- * Affiche/masque le panneau "Mes favoris".
- */
-function toggleWishlistPanel() {
-  const overlay = document.getElementById('wishlistOverlay');
-  const panel = document.getElementById('wishlistPanel');
-  if (!overlay || !panel) return;
-  const isOpen = panel.classList.contains('open');
-  if (isOpen) {
-    overlay.classList.remove('open');
-    panel.classList.remove('open');
-  } else {
-    renderWishlistPanel();
-    overlay.classList.add('open');
-    panel.classList.add('open');
-  }
-}
-
-/**
- * Remplit le panneau favoris avec les produits actuellement en wishlist.
- */
-function renderWishlistPanel() {
-  const container = document.getElementById('wishlistItemsContainer');
-  if (!container) return;
-
-  if (wishlist.length === 0) {
-    container.innerHTML = '<p style="color:#666; font-size:0.85rem;">Aucun favori pour le moment. Cliquez sur ♡ sur un produit pour l\'ajouter ici.</p>';
-    return;
-  }
-
-  const products = (adminData.products || []).filter(p => wishlist.includes(String(p.id)));
-
-  if (products.length === 0) {
-    container.innerHTML = '<p style="color:#666; font-size:0.85rem;">Vos produits favoris ne sont plus disponibles.</p>';
-    return;
-  }
-
-  container.innerHTML = products.map(p => {
-    const priceFCFA = Math.round(Number(p.price) * (adminData.exchangeRate || 655));
-    const imgHtml = p.image
-      ? `<img src="${p.image}" alt="${p.name}" style="width:60px; height:60px; object-fit:cover; border-radius:8px;">`
-      : `<div style="width:60px; height:60px; display:flex; align-items:center; justify-content:center; font-size:1.8rem; background:rgba(255,255,255,0.05); border-radius:8px;">${p.icon || '📦'}</div>`;
-    return `
-      <div style="display:flex; gap:12px; align-items:center; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.08);">
-        ${imgHtml}
-        <div style="flex:1;">
-          <div style="font-weight:700; font-size:0.9rem;">${p.name}</div>
-          <div style="opacity:0.7; font-size:0.85rem;">${priceFCFA.toLocaleString()} FCFA</div>
-        </div>
-        <button type="button" class="add-btn" onclick="addToCart('${p.id}')" title="Ajouter au panier">+</button>
-        <button type="button" onclick="toggleWishlist('${p.id}')" style="background:none; border:none; color:#ff4444; font-size:1.2rem; cursor:pointer;" title="Retirer des favoris">✕</button>
-      </div>`;
-  }).join('');
-}
-
-// ==================== BEST SELLERS ====================
-async function loadBestSellers() {
-  const container = document.getElementById('bestSellersContainer');
-  if (!container) return;
-  
-  try {
-    if (!window.db) {
-      console.warn('⚠️ Firestore not yet initialized for best sellers');
-      return;
-    }
-    const snapshot = await window.db.collection('orders').get();
-    const productSales = {};
-    
-    snapshot.forEach(doc => {
-      const order = doc.data();
-      (order.items || []).forEach(item => {
-        const key = item.id;
-        if (!productSales[key]) productSales[key] = 0;
-        productSales[key] += Number(item.qty) || 0;
-      });
-    });
-
-    const topIds = Object.entries(productSales)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
-      .map(e => e[0]);
-
-    const bestsellers = adminData.products.filter(p => topIds.includes(p.id));
-    
-    container.innerHTML = bestsellers.map(p => {
-      const exchangeRate = adminData.exchangeRate || 655;
-      const priceFCFA = (Number(p.price) * exchangeRate).toFixed(0);
-      return `
-        <div class="product-card" style="cursor:pointer;" onclick="openProductDetail('${p.id}')">
-          <div class="product-img" style="position:relative; overflow:hidden; background: rgba(255,255,255,0.03);">
-            ${p.image ? `<img src="${p.image}" alt="${p.name}" loading="lazy" decoding="async" width="380" height="200" style="width:100%; height:200px; object-fit:cover;">` : `<div style="width:100%; height:200px; display:flex; align-items:center; justify-content:center; font-size:3.5rem;">${p.icon || '📦'}</div>`}
-            <button class="wishlist-btn" data-product-id="${p.id}" onclick="event.stopPropagation(); toggleWishlist('${p.id}')">♡</button>
-          </div>
-          <div class="product-info">
-            <div class="product-name" style="margin-bottom:8px;">${p.name}</div>
-            <div style="display:flex; gap:8px; align-items:center; justify-content:space-between;">
-              <div class="product-price">${priceFCFA.toLocaleString()} FCFA</div>
-              <button type="button" class="add-btn" onclick="event.stopPropagation(); addToCart('${p.id}')">+</button>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
-    
-    updateWishlistButtons();
-  } catch (e) {
-    console.error('Erreur meilleures ventes:', e);
-  }
-}
+// Fonctions annexes du site client : codes promo, lazy loading, fiche produit.
 
 // Note : le panier n'est plus persisté dans localStorage — il se vide
 // volontairement à chaque actualisation de page (comportement demandé).
@@ -328,17 +83,17 @@ function openProductDetail(productId) {
   const stock = Number(product.stock || 0);
 
   modal.innerHTML = `
-    <div class="modal-content" style="position:relative; border-radius:16px; padding:40px; max-width:600px; max-height:80vh; overflow-y:auto;">
-      <button style="position:absolute; top:20px; right:20px; background:none; border:none; color:#fff; font-size:24px; cursor:pointer;" onclick="this.closest('.product-detail-modal').remove()">✕</button>
+    <div class="modal-content" style="position:relative; border-radius:16px; padding:20px; width:100%; max-width:600px; max-height:88vh; overflow-y:auto;">
+      <button style="position:absolute; top:10px; right:12px; background:none; border:none; color:#fff; font-size:26px; cursor:pointer; padding:8px; z-index:2;" onclick="this.closest('.product-detail-modal').remove()">✕</button>
       ${product.image
-        ? `<img src="${product.image}" alt="${product.name}" style="width:100%; height:300px; object-fit:cover; border-radius:12px; margin-bottom:20px;">`
+        ? `<img src="${product.image}" alt="${product.name}" style="width:100%; height:240px; object-fit:cover; border-radius:12px; margin-bottom:16px;">`
         : `<div class="product-detail-icon-fallback">${product.icon || '📦'}</div>`}
       <h2 style="font-size:1.8rem; margin-bottom:8px;">${product.name}</h2>
       <p style="color:#aaa; margin-bottom:16px;">${product.category}</p>
       <p style="font-size:1.2rem; color:var(--accent2); margin-bottom:16px; font-weight:700;">${priceFCFA} FCFA</p>
       <p style="margin-bottom:16px; line-height:1.6;">${product.desc}</p>
       ${stock <= 5 ? `<div class="stock-indicator low">⚠️ ${stock} articles restants</div>` : stock > 0 ? `<div class="stock-indicator available">✓ En stock</div>` : `<div class="stock-indicator">Rupture de stock</div>`}
-      <button class="add-btn" style="width:100%; margin-top:20px; padding:12px;" onclick="addToCart('${product.id}'); this.closest('.product-detail-modal').remove();">Ajouter au panier</button>
+      <button class="add-btn" style="width:100%; margin-top:16px; padding:16px; font-size:1rem; border-radius:12px;" onclick="addToCart('${product.id}'); this.closest('.product-detail-modal').remove();">Ajouter au panier</button>
     </div>
   `;
   document.body.appendChild(modal);
@@ -346,14 +101,12 @@ function openProductDetail(productId) {
 
 // ==================== INIT ALL FEATURES ====================
 function initializeAllFeatures() {
-  loadBestSellers();
   loadPromoCodesFromFirestore();
   // Le panier ne doit PAS survivre à une actualisation de page : on ne
   // restaure plus depuis localStorage, et on nettoie une éventuelle donnée
   // laissée par une ancienne version du site chez les visiteurs déjà venus.
   localStorage.removeItem('techAccessCart');
   initLazyLoading();
-  updateWishlistCount();
 
   // Promo code input handler
   const promoInput = document.getElementById('promoCodeInput');

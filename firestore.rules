@@ -44,10 +44,9 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Orders: création ouverte (site en "guest checkout", sans compte requis),
-    // avec validation minimale de la forme des données. Lecture/modif/suppr
-    // réservées à l'admin, ou au client connecté propriétaire (via userId,
-    // le champ réellement utilisé par main.js/main-additions.js).
+    // Orders: création ouverte (site en "guest checkout", sans compte client),
+    // avec validation minimale de la forme des données. Lecture, modification
+    // et suppression réservées à l'admin.
     match /orders/{document=**} {
       allow create: if request.resource.data.total is number
                     && request.resource.data.total > 0
@@ -59,9 +58,7 @@ service cloud.firestore {
                     && request.resource.data.customer.whatsapp.matches('^[+]?[0-9 ]{8,15}$')
                     && request.resource.data.items is list
                     && request.resource.data.items.size() > 0;
-      allow read, update, delete: if isAdmin() || (
-        isSignedIn() && resource.data.userId == request.auth.uid
-      );
+      allow read, update, delete: if isAdmin();
     }
 
     // Admin logs: admin only
@@ -69,27 +66,10 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // Users: user can read/write own profile, admin can manage
+    // Users: anciens comptes clients (fonction supprimée du site). Seul l'admin
+    // peut encore les consulter/gérer depuis le panel.
     match /users/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      // Bonus de parrainage : un utilisateur connecté peut créditer les
-      // points d'un AUTRE compte (le parrain), mais seulement ce champ précis,
-      // et seulement pour l'incrément fixe exact du bonus (500 pts) — jamais
-      // pour modifier quoi que ce soit d'autre sur le compte de quelqu'un.
-      allow update: if isSignedIn() && !isAdmin() && request.auth.uid != userId
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['loyaltyPoints'])
-        && request.resource.data.loyaltyPoints == resource.data.loyaltyPoints + 500;
-    }
-
-    // Table de correspondance publique "code de parrainage -> uid", pour
-    // pouvoir résoudre un code AVANT que le nouvel inscrit soit authentifié
-    // (un code de parrainage est fait pour être partagé, donc pas sensible).
-    // Le profil complet (users/{uid}) reste protégé normalement.
-    match /referralCodes/{code} {
-      allow read: if true;
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
-      allow update, delete: if false;
+      allow read, write: if isAdmin();
     }
 
     // Purchases, supportTickets and other admin collections: admin read/write
